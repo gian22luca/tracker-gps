@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Rastreo GPS en Tiempo Real</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+        }
+
+        #status {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            padding: 10px;
+            z-index: 1000;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            font-family: sans-serif;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="status">Esperando datos...</div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // ID unico de tu tracker (debe coincidir con el codigo de Arduino)
+        const THING_NAME = "mi-gps-tracker-unico-12345";
+
+        // Inicializar mapa centrado en zona neutra (lat, lon, zoom)
+        var map = L.map('map').setView([-34.6037, -58.3816], 13); // Buenos Aires por defecto
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        var marker = null;
+
+        function updateLocation() {
+            fetch(`https://dweet.cc/get/latest/dweet/for/${THING_NAME}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.this == "succeeded" && data.with.length > 0) {
+                        var content = data.with[0].content;
+                        var lat = parseFloat(content.lat);
+                        var lon = parseFloat(content.lon);
+                        // HDOP por defecto 5.0 si no viene
+                        var hdop = content.hdop ? parseFloat(content.hdop) : 5.0;
+                        var accuracyRadius = hdop * 10; // Estimacion aprox en metros
+
+                        var time = data.with[0].created;
+
+                        document.getElementById('status').innerHTML =
+                            `<b>Última actualización:</b><br>${time}<br>Lat: ${lat}<br>Lon: ${lon}<br>Precisión: +/- ${accuracyRadius.toFixed(1)} m`;
+
+                        if (marker) {
+                            marker.setLatLng([lat, lon]);
+                            accuracyCircle.setLatLng([lat, lon]);
+                            accuracyCircle.setRadius(accuracyRadius);
+                        } else {
+                            marker = L.marker([lat, lon]).addTo(map);
+                            accuracyCircle = L.circle([lat, lon], {
+                                color: 'blue',
+                                fillColor: '#30f',
+                                fillOpacity: 0.1,
+                                radius: accuracyRadius
+                            }).addTo(map);
+                        }
+
+                        map.setView([lat, lon]); // Centrar mapa en nueva ubicacion
+                    }
+                })
+                .catch(err => console.error("Error obteniendo datos:", err));
+        }
+
+        // Actualizar cada 5 segundos
+        setInterval(updateLocation, 5000);
+        updateLocation();
+    </script>
+
+</body>
+
+</html>
