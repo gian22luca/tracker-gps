@@ -7,34 +7,193 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
     <style>
-        #map {
-            height: 100vh;
-            width: 100%;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
         body {
-            margin: 0;
-            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header img {
+            max-height: 60px;
+            height: auto;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .map-container {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            position: relative;
+            flex: 1;
+        }
+
+        #map {
+            height: 600px;
+            width: 100%;
+            border-radius: 8px;
         }
 
         #status {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 30px;
+            right: 30px;
             background: white;
-            padding: 10px;
+            padding: 15px;
             z-index: 1000;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
             font-family: sans-serif;
+            min-width: 200px;
+        }
+
+        #status b {
+            color: #667eea;
+        }
+
+        #route-filter {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            font-family: sans-serif;
+            margin-right: 20px;
+            min-width: 180px;
+        }
+
+        #route-filter h3 {
+            margin: 0 0 15px 0;
+            font-size: 15px;
+            color: #333;
+        }
+
+        #route-filter label {
+            display: block;
+            margin: 10px 0;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        #route-filter input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        #center-gps-btn {
+            display: block;
+            width: 100%;
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        #center-gps-btn:hover {
+            background-color: #5568d3;
+        }
+
+        #center-gps-btn:active {
+            background-color: #4557b8;
+        }
+
+        .content-wrapper {
+            display: flex;
+            gap: 0;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .header img {
+                max-height: 40px;
+            }
+
+            #map {
+                height: 400px;
+            }
+
+            #status {
+                top: 20px;
+                right: 20px;
+                font-size: 12px;
+                min-width: 150px;
+                padding: 10px;
+            }
+
+            .content-wrapper {
+                flex-direction: column;
+            }
+
+            #route-filter {
+                margin-right: 0;
+                margin-bottom: 15px;
+                min-width: auto;
+            }
+
+            #route-filter label {
+                display: block;
+                margin: 8px 0;
+            }
         }
     </style>
 </head>
 
 <body>
 
-    <div id="status">Esperando datos...</div>
-    <div id="map"></div>
+    <div class="container">
+        <div class="header">
+            <img src="vixel-logo.jpg" alt="Vixel Logo">
+        </div>
+
+        <div class="content-wrapper">
+            <div id="route-filter">
+                <h3>Filtro de Rutas</h3>
+                <label>
+                    <input type="checkbox" id="show-ida" checked>
+                    <span style="color: red;">●</span> IDA
+                </label>
+                <label>
+                    <input type="checkbox" id="show-vuelta" checked>
+                    <span style="color: blue;">●</span> VUELTA
+                </label>
+                <button id="center-gps-btn">📍 Centrar GPS</button>
+            </div>
+
+            <div class="map-container">
+                <div id="status">Esperando datos...</div>
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
@@ -50,6 +209,138 @@
         }).addTo(map);
 
         var marker = null;
+        var currentGPSPosition = null; // Guardar posición actual del GPS
+
+        // === CONFIGURACIÓN DE RUTAS Y TERMINALES ===
+
+        // Coordenadas de las terminales
+        const terminal1 = [-34.64156342985639, -58.36911794252859];
+        const terminal2 = [-34.57382497011297, -58.40973918613616];
+
+        // Ruta IDA (Roja) - Terminal 2 a Terminal 1
+        const rutaIda = [
+            [-34.573799, -58.409758], [-34.574018, -58.409436], [-34.574189, -58.409071], [-34.574312, -58.408881],
+            [-34.574425, -58.408706], [-34.574597, -58.408492], [-34.574769, -58.408341], [-34.575155, -58.40817],
+            [-34.575562, -58.408556], [-34.575927, -58.409071], [-34.576442, -58.40965], [-34.577193, -58.409994],
+            [-34.577816, -58.408599], [-34.578116, -58.407934], [-34.578652, -58.406882], [-34.57921, -58.406281],
+            [-34.579554, -58.405874], [-34.579833, -58.405552], [-34.580511, -58.404614], [-34.58105, -58.403965],
+            [-34.581376, -58.403498], [-34.581721, -58.402506], [-34.582064, -58.401561], [-34.583416, -58.402054],
+            [-34.583867, -58.401217], [-34.584446, -58.400552], [-34.585004, -58.39993], [-34.585733, -58.399179],
+            [-34.585862, -58.398964], [-34.586527, -58.398256], [-34.587162, -58.397536], [-34.58745, -58.397248],
+            [-34.588008, -58.396518], [-34.588544, -58.395853], [-34.589317, -58.39493], [-34.590089, -58.393986],
+            [-34.590926, -58.392935], [-34.591763, -58.391862], [-34.590905, -58.390918], [-34.590046, -58.389952],
+            [-34.59084, -58.388944], [-34.591634, -58.387957], [-34.592814, -58.38757], [-34.594617, -58.387291],
+            [-34.595711, -58.387141], [-34.597063, -58.387055], [-34.598286, -58.38697], [-34.599273, -58.386862],
+            [-34.600625, -58.386734], [-34.601634, -58.386691], [-34.602764, -58.386655], [-34.60402, -58.386541],
+            [-34.605238, -58.386476], [-34.606462, -58.386369], [-34.607653, -58.386315], [-34.6088, -58.386283],
+            [-34.60938, -58.386261], [-34.609981, -58.386219], [-34.611075, -58.386154], [-34.612298, -58.386154],
+            [-34.61345, -58.386061], [-34.614554, -58.385965], [-34.615517, -58.385918], [-34.616675, -58.385897],
+            [-34.617813, -58.385875], [-34.618671, -58.385854], [-34.619851, -58.385832], [-34.621139, -58.385832],
+            [-34.622362, -58.385811], [-34.62322, -58.385832], [-34.623563, -58.385832], [-34.623928, -58.385811],
+            [-34.624743, -58.385789], [-34.626095, -58.385746], [-34.627039, -58.385725], [-34.627018, -58.384352],
+            [-34.626932, -58.38285], [-34.626906, -58.382255], [-34.627333, -58.382236], [-34.627372, -58.382202],
+            [-34.627532, -58.382001], [-34.627611, -58.381921], [-34.627638, -58.381843], [-34.627613, -58.381146],
+            [-34.6276, -58.380529], [-34.627589, -58.379838], [-34.627712, -58.379603], [-34.629312, -58.379034],
+            [-34.629872, -58.378816], [-34.630215, -58.378687], [-34.630258, -58.378644], [-34.630344, -58.378451],
+            [-34.630301, -58.378129], [-34.630172, -58.378], [-34.629979, -58.3777], [-34.629722, -58.377249],
+            [-34.630065, -58.377035], [-34.630816, -58.376713], [-34.632189, -58.376155], [-34.633241, -58.37579],
+            [-34.634421, -58.375404], [-34.634593, -58.375361], [-34.635258, -58.375211], [-34.636159, -58.375039],
+            [-34.637189, -58.374867], [-34.637833, -58.374717], [-34.638669, -58.374588], [-34.639657, -58.374417],
+            [-34.6403, -58.37431], [-34.640558, -58.374245], [-34.641588, -58.374052], [-34.64148, -58.372808],
+            [-34.641373, -58.371799], [-34.641309, -58.37079], [-34.641116, -58.369095], [-34.641931, -58.368967]
+        ];
+
+        // Ruta VUELTA (Azul) - Terminal 1 a Terminal 2
+        const rutaVuelta = [
+            [-34.641931, -58.368967], [-34.642167, -58.370597], [-34.642231, -58.371627], [-34.642317, -58.372657],
+            [-34.642438, -58.373868], [-34.641588, -58.374052], [-34.640558, -58.374245], [-34.6403, -58.37431],
+            [-34.639657, -58.374417], [-34.638669, -58.374588], [-34.637833, -58.374717], [-34.637189, -58.374867],
+            [-34.636159, -58.375039], [-34.636098, -58.375051], [-34.635258, -58.375211], [-34.634593, -58.375361],
+            [-34.634421, -58.375404], [-34.633241, -58.37579], [-34.632189, -58.376155], [-34.630816, -58.376713],
+            [-34.630065, -58.377035], [-34.629722, -58.377249], [-34.62955, -58.377357], [-34.628563, -58.377936],
+            [-34.627426, -58.378472], [-34.626404, -58.378868], [-34.626265, -58.379059], [-34.626151, -58.379339],
+            [-34.626374, -58.380168], [-34.626873, -58.379962], [-34.627042, -58.380011], [-34.627158, -58.380018],
+            [-34.627264, -58.380135], [-34.627312, -58.380295], [-34.627347, -58.381772], [-34.627293, -58.381997],
+            [-34.627178, -58.382131], [-34.626934, -58.382156], [-34.625914, -58.382195], [-34.624773, -58.382263],
+            [-34.624654, -58.382349], [-34.624658, -58.382936], [-34.624701, -58.384395], [-34.624743, -58.385789],
+            [-34.624829, -58.387184], [-34.624014, -58.387184], [-34.623778, -58.387184], [-34.623306, -58.387184],
+            [-34.622447, -58.387163], [-34.621246, -58.387206], [-34.619937, -58.387313], [-34.618778, -58.38742],
+            [-34.617877, -58.387463], [-34.616697, -58.387485], [-34.615538, -58.387463], [-34.614658, -58.387494],
+            [-34.613544, -58.387489], [-34.612386, -58.387463], [-34.611161, -58.387485], [-34.610022, -58.387589],
+            [-34.609846, -58.387356], [-34.60973, -58.387298], [-34.609457, -58.38731], [-34.609096, -58.387344],
+            [-34.609004, -58.387422], [-34.608916, -58.387609], [-34.608866, -58.387679], [-34.607751, -58.387734],
+            [-34.606547, -58.387828], [-34.605402, -58.387905], [-34.60413, -58.387926], [-34.602918, -58.387952],
+            [-34.601698, -58.388042], [-34.600673, -58.388109], [-34.599316, -58.38815], [-34.598379, -58.388206],
+            [-34.597149, -58.3883], [-34.595765, -58.388355], [-34.59466, -58.388557], [-34.592836, -58.388772],
+            [-34.59275, -58.388772], [-34.592514, -58.389008], [-34.591699, -58.389931], [-34.590905, -58.390918],
+            [-34.590089, -58.391948], [-34.589231, -58.393042], [-34.590089, -58.393986], [-34.589317, -58.39493],
+            [-34.588544, -58.395853], [-34.588008, -58.396518], [-34.58745, -58.397248], [-34.58715, -58.397548],
+            [-34.586527, -58.398256], [-34.585862, -58.398964], [-34.585733, -58.399179], [-34.585004, -58.39993],
+            [-34.584446, -58.400552], [-34.583867, -58.401217], [-34.583416, -58.402054], [-34.583437, -58.404028],
+            [-34.58346, -58.405316], [-34.58263, -58.40471], [-34.58195, -58.404158], [-34.5815, -58.403793],
+            [-34.581376, -58.403498], [-34.58124, -58.403161], [-34.580841, -58.403041], [-34.57994, -58.40302],
+            [-34.579146, -58.402934], [-34.578674, -58.402762], [-34.578223, -58.402634], [-34.577601, -58.403471],
+            [-34.576528, -58.40493], [-34.575799, -58.405809], [-34.575176, -58.406646], [-34.574575, -58.40759],
+            [-34.572215, -58.410959], [-34.571829, -58.411753], [-34.572065, -58.411989], [-34.572237, -58.411968],
+            [-34.57273, -58.410959], [-34.573138, -58.410466], [-34.573567, -58.410101], [-34.573799, -58.409758]
+        ];
+
+        // Dibujar rutas en el mapa (guardar referencias para poder mostrar/ocultar)
+        var polylineIda = L.polyline(rutaIda, {
+            color: 'red',
+            weight: 3,
+            opacity: 0.7
+        }).addTo(map).bindPopup('Recorrido IDA');
+
+        var polylineVuelta = L.polyline(rutaVuelta, {
+            color: 'blue',
+            weight: 3,
+            opacity: 0.7
+        }).addTo(map).bindPopup('Recorrido VUELTA');
+
+        // Configurar filtros de rutas
+        document.getElementById('show-ida').addEventListener('change', function (e) {
+            if (e.target.checked) {
+                map.addLayer(polylineIda);
+            } else {
+                map.removeLayer(polylineIda);
+            }
+        });
+
+        document.getElementById('show-vuelta').addEventListener('change', function (e) {
+            if (e.target.checked) {
+                map.addLayer(polylineVuelta);
+            } else {
+                map.removeLayer(polylineVuelta);
+            }
+        });
+
+        // Botón para centrar en la posición GPS
+        document.getElementById('center-gps-btn').addEventListener('click', function () {
+            if (currentGPSPosition) {
+                map.setView(currentGPSPosition, 15);
+            } else {
+                alert('Aún no hay datos de GPS disponibles');
+            }
+        });
+
+        // Agregar marcadores de terminales
+        L.marker(terminal1, {
+            icon: L.divIcon({
+                className: 'terminal-marker',
+                html: '<div style="background-color: green; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white;"></div>',
+                iconSize: [20, 20]
+            })
+        }).addTo(map).bindPopup('<b>Terminal 1</b><br>Inicio del recorrido');
+
+        L.marker(terminal2, {
+            icon: L.divIcon({
+                className: 'terminal-marker',
+                html: '<div style="background-color: darkred; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white;"></div>',
+                iconSize: [20, 20]
+            })
+        }).addTo(map).bindPopup('<b>Terminal 2</b><br>Fin del recorrido');
+
 
         function updateLocation() {
             fetch(`https://dweet.cc/get/latest/dweet/for/${THING_NAME}`)
@@ -80,9 +371,12 @@
                                 fillOpacity: 0.1,
                                 radius: accuracyRadius
                             }).addTo(map);
+                            // Solo centrar la primera vez que se obtiene GPS
+                            map.setView([lat, lon], 15);
                         }
 
-                        map.setView([lat, lon]); // Centrar mapa en nueva ubicacion
+                        // Guardar la posición actual (NO centrar automáticamente)
+                        currentGPSPosition = [lat, lon];
                     }
                 })
                 .catch(err => console.error("Error obteniendo datos:", err));
