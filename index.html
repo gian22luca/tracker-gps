@@ -37,7 +37,7 @@
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
@@ -48,6 +48,7 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
             position: relative;
             flex: 1;
+            min-width: 0;
         }
 
         #map {
@@ -81,6 +82,7 @@
             font-family: sans-serif;
             margin-right: 20px;
             min-width: 180px;
+            max-width: 180px;
         }
 
         #route-filter h3 {
@@ -115,54 +117,529 @@
             font-weight: bold;
         }
 
-        #center-gps-btn:hover {
-            background-color: #5568d3;
-        }
-
-        #center-gps-btn:active {
-            background-color: #4557b8;
-        }
+        #center-gps-btn:hover { background-color: #5568d3; }
+        #center-gps-btn:active { background-color: #4557b8; }
 
         .content-wrapper {
             display: flex;
             gap: 0;
+            align-items: flex-start;
         }
 
-        @media (max-width: 768px) {
-            body {
-                padding: 10px;
-            }
+        /* ========== PANEL DE RECORRIDO ========== */
+        #trip-panel {
+            background: white;
+            padding: 18px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            font-family: sans-serif;
+            margin-left: 20px;
+            min-width: 250px;
+            max-width: 250px;
+            flex-shrink: 0;
+        }
 
-            .header img {
-                max-height: 40px;
-            }
+        #trip-panel h3 {
+            font-size: 15px;
+            color: #333;
+            margin-bottom: 12px;
+            font-weight: 700;
+            text-align: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
 
-            #map {
-                height: 400px;
-            }
+        /* --- Contadores de viajes --- */
+        .counters-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
 
-            #status {
-                top: 20px;
-                right: 20px;
-                font-size: 12px;
-                min-width: 150px;
-                padding: 10px;
-            }
+        .counter-box {
+            flex: 1;
+            border-radius: 8px;
+            padding: 10px 8px;
+            text-align: center;
+        }
 
-            .content-wrapper {
-                flex-direction: column;
-            }
+        .counter-box.ida {
+            background: #fff0f0;
+            border: 1px solid #f5c0c0;
+        }
+
+        .counter-box.vuelta {
+            background: #f0f0ff;
+            border: 1px solid #c0c0f5;
+        }
+
+        .counter-box .c-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .counter-box.ida .c-label { color: #c0392b; }
+        .counter-box.vuelta .c-label { color: #2563eb; }
+
+        .counter-box .c-num {
+            font-size: 26px;
+            font-weight: 800;
+            line-height: 1;
+        }
+
+        .counter-box.ida .c-num { color: #c0392b; }
+        .counter-box.vuelta .c-num { color: #2563eb; }
+
+        .counter-box .c-sub {
+            font-size: 10px;
+            color: #999;
+            margin-top: 2px;
+        }
+
+        /* --- Badge de estado --- */
+        .trip-badge {
+            display: block;
+            padding: 5px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+
+        .badge-waiting  { background: #f0f0f0; color: #888; }
+        .badge-ida      { background: #ffe5e5; color: #c0392b; }
+        .badge-vuelta   { background: #e5e5ff; color: #2563eb; }
+        .badge-done-ida    { background: #ffd1d1; color: #922b21; }
+        .badge-done-vuelta { background: #d1d1ff; color: #1a56c9; }
+
+        /* --- Filas de datos --- */
+        .trip-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 9px;
+            font-size: 13px;
+        }
+
+        .trip-row .label {
+            color: #888;
+            font-size: 12px;
+            white-space: nowrap;
+            margin-right: 6px;
+            padding-top: 1px;
+        }
+
+        .trip-row .value {
+            color: #222;
+            font-weight: 600;
+            text-align: right;
+        }
+
+        .trip-divider {
+            border: none;
+            border-top: 1px solid #eee;
+            margin: 12px 0;
+        }
+
+        /* --- Caja distancia a ruta --- */
+        .distance-box {
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 10px;
+            font-size: 13px;
+            transition: background 0.3s, border-color 0.3s;
+        }
+
+        .distance-box .dist-label {
+            font-weight: 600;
+            font-size: 11px;
+            margin-bottom: 2px;
+        }
+
+        .distance-box.normal {
+            background: #f0f4ff;
+            border: 1px solid #c7d2fe;
+        }
+
+        .distance-box.normal .dist-label { color: #667eea; }
+
+        .distance-box.alert {
+            background: #fff3f3;
+            border: 1px solid #ffd0d0;
+        }
+
+        .distance-box.alert .dist-label { color: #c0392b; }
+
+        .distance-box .dist-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: #222;
+        }
+
+        .distance-box .dist-unit {
+            font-size: 11px;
+            color: #888;
+            margin-left: 3px;
+        }
+
+        /* --- Contador y lista de desvíos --- */
+        .deviation-count-box {
+            border-radius: 6px;
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .deviation-count-box.ok {
+            background: #f0fff4;
+            border: 1px solid #b7ebc8;
+        }
+        .deviation-count-box.ok .dev-label,
+        .deviation-count-box.ok .dev-num { color: #27ae60; }
+
+        .deviation-count-box.bad {
+            background: #fff3f3;
+            border: 1px solid #ffd0d0;
+        }
+        .deviation-count-box.bad .dev-label,
+        .deviation-count-box.bad .dev-num { color: #c0392b; }
+
+        .deviation-count-box .dev-label { font-weight: 600; }
+        .deviation-count-box .dev-num { font-size: 20px; font-weight: 700; }
+
+        #deviation-list {
+            max-height: 160px;
+            overflow-y: auto;
+        }
+
+        .deviation-item {
+            background: #fff8f8;
+            border-left: 3px solid #e74c3c;
+            padding: 5px 8px;
+            margin-bottom: 5px;
+            border-radius: 0 4px 4px 0;
+            font-size: 11px;
+        }
+
+        .deviation-item .dev-time { color: #e74c3c; font-weight: 600; }
+        .deviation-item .dev-dist { color: #555; }
+
+        .no-deviations {
+            color: #27ae60;
+            font-size: 12px;
+            text-align: center;
+            padding: 6px 0;
+        }
+
+        /* --- Botón reiniciar --- */
+        #reset-trip-btn {
+            display: none;
+            width: 100%;
+            margin-top: 12px;
+            padding: 8px;
+            background-color: #95a5a6;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        #reset-trip-btn:hover { background-color: #7f8c8d; }
+        #reset-trip-btn.primary { background-color: #e74c3c; }
+        #reset-trip-btn.primary:hover { background-color: #c0392b; }
+
+        #history-btn {
+            display: block;
+            width: 100%;
+            margin-top: 8px;
+            padding: 8px;
+            background-color: #f0f4ff;
+            color: #667eea;
+            border: 1px solid #c7d2fe;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        #history-btn:hover { background-color: #e0e7ff; }
+
+        /* ========== MODAL HISTORIAL ========== */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            width: 100%;
+            max-width: 900px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 24px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .modal-header h2 {
+            font-size: 17px;
+            font-weight: 700;
+            color: #333;
+            margin: 0;
+        }
+
+        .modal-header .close-btn {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #aaa;
+            line-height: 1;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        .modal-header .close-btn:hover { background: #f5f5f5; color: #555; }
+
+        #history-content {
+            overflow-y: auto;
+            flex: 1;
+            padding: 16px 24px;
+        }
+
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .history-table th {
+            text-align: left;
+            padding: 8px 10px;
+            background: #f8faff;
+            color: #667eea;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e0e7ff;
+            white-space: nowrap;
+        }
+
+        .history-table td {
+            padding: 9px 10px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+
+        .history-table tbody tr:hover { background: #fafbff; }
+
+        .dir-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .dir-ida    { background: #ffe5e5; color: #c0392b; }
+        .dir-vuelta { background: #e5e5ff; color: #2563eb; }
+
+        .dev-dot-sm {
+            display: inline-block;
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        .no-history {
+            text-align: center;
+            color: #aaa;
+            padding: 40px 0;
+            font-size: 14px;
+        }
+
+        .modal-footer {
+            padding: 12px 24px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            flex-shrink: 0;
+        }
+
+        #clear-history-btn {
+            padding: 7px 16px;
+            background: #fff0f0;
+            color: #c0392b;
+            border: 1px solid #ffd0d0;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        #clear-history-btn:hover { background: #ffe0e0; }
+
+        /* ========== MEDIDOR DE DATOS ========== */
+        #data-meter {
+            margin-top: 14px;
+            background: #f8faff;
+            border: 1px solid #dde3f5;
+            border-radius: 8px;
+            padding: 10px 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0;
+            align-items: center;
+            font-size: 12px;
+            font-family: sans-serif;
+        }
+
+        #data-meter .dm-title {
+            font-weight: 700;
+            color: #444;
+            font-size: 12px;
+            margin-right: 16px;
+            white-space: nowrap;
+        }
+
+        .dm-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 0 14px;
+            border-right: 1px solid #dde3f5;
+        }
+
+        .dm-item:last-child { border-right: none; }
+
+        .dm-icon { font-size: 14px; line-height: 1; }
+
+        .dm-info { display: flex; flex-direction: column; }
+
+        .dm-label {
+            color: #999;
+            font-size: 10px;
+            line-height: 1.2;
+        }
+
+        .dm-value {
+            color: #222;
+            font-weight: 700;
+            font-size: 13px;
+            line-height: 1.3;
+        }
+
+        #dm-bar-wrap {
+            flex: 1;
+            min-width: 80px;
+            height: 5px;
+            background: #e0e7ff;
+            border-radius: 3px;
+            margin-left: 14px;
+            overflow: hidden;
+        }
+
+        #dm-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+
+        /* ========== SELECTOR DE DISPOSITIVOS ========== */
+        #device-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 0 0 20px 0;
+            align-items: center;
+        }
+
+        .device-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 18px;
+            border-radius: 20px;
+            border: 2px solid #ddd;
+            background: #f5f5f5;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: #aaa;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .device-btn.active {
+            background: white;
+            color: #333;
+            border-color: var(--dev-color);
+        }
+
+        .device-btn.focused {
+            background: var(--dev-color);
+            color: white;
+            border-color: var(--dev-color);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .device-btn .dev-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .device-btn.focused .dev-dot {
+            background: rgba(255,255,255,0.7) !important;
+        }
+
+        @media (max-width: 900px) {
+            body { padding: 10px; }
+            .header img { max-height: 40px; }
+            #map { height: 400px; }
+            #status { top: 20px; right: 20px; font-size: 12px; min-width: 150px; padding: 10px; }
+
+            .content-wrapper { flex-direction: column; }
 
             #route-filter {
-                margin-right: 0;
-                margin-bottom: 15px;
-                min-width: auto;
+                margin-right: 0; margin-bottom: 15px;
+                min-width: auto; max-width: none; width: 100%;
             }
 
-            #route-filter label {
-                display: block;
-                margin: 8px 0;
+            #trip-panel {
+                margin-left: 0; margin-top: 15px;
+                min-width: auto; max-width: none; width: 100%;
             }
+
+            #data-meter { gap: 8px; }
+            .dm-item { padding: 4px 10px; }
+            #dm-bar-wrap { display: none; }
         }
     </style>
 </head>
@@ -174,7 +651,11 @@
             <img src="vixel-logo.jpg" alt="Vixel Logo">
         </div>
 
+        <!-- Panel de selección de dispositivos (generado por JS) -->
+        <div id="device-selector"></div>
+
         <div class="content-wrapper">
+            <!-- Panel izquierdo: filtros -->
             <div id="route-filter">
                 <h3>Filtro de Rutas</h3>
                 <label>
@@ -188,32 +669,178 @@
                 <button id="center-gps-btn">📍 Centrar GPS</button>
             </div>
 
+            <!-- Mapa central -->
             <div class="map-container">
                 <div id="status">Esperando datos...</div>
                 <div id="map"></div>
+
+                <!-- Medidor de consumo de datos SIM808 -->
+                <div id="data-meter">
+                    <span class="dm-title">📡 SIM808 · Datos reales</span>
+                    <div class="dm-item">
+                        <span class="dm-icon">⬆️</span>
+                        <div class="dm-info">
+                            <span class="dm-label">Enviado</span>
+                            <span class="dm-value" id="dm-sent">--</span>
+                        </div>
+                    </div>
+                    <div class="dm-item">
+                        <span class="dm-icon">⬇️</span>
+                        <div class="dm-info">
+                            <span class="dm-label">Recibido</span>
+                            <span class="dm-value" id="dm-recv">--</span>
+                        </div>
+                    </div>
+                    <div class="dm-item">
+                        <span class="dm-icon">📊</span>
+                        <div class="dm-info">
+                            <span class="dm-label">Total</span>
+                            <span class="dm-value" id="dm-total">--</span>
+                        </div>
+                    </div>
+                    <div class="dm-item">
+                        <span class="dm-icon">🔄</span>
+                        <div class="dm-info">
+                            <span class="dm-label">Envíos</span>
+                            <span class="dm-value" id="dm-requests">--</span>
+                        </div>
+                    </div>
+                    <div class="dm-item">
+                        <span class="dm-icon">⚡</span>
+                        <div class="dm-info">
+                            <span class="dm-label">Tasa</span>
+                            <span class="dm-value" id="dm-rate">--</span>
+                        </div>
+                    </div>
+                    <div class="dm-item">
+                        <span class="dm-icon">🕐</span>
+                        <div class="dm-info">
+                            <span class="dm-label">Uptime dispositivo</span>
+                            <span class="dm-value" id="dm-uptime">--:--:--</span>
+                        </div>
+                    </div>
+                    <div id="dm-bar-wrap"><div id="dm-bar"></div></div>
+                </div>
+            </div>
+
+            <!-- Panel derecho: estadísticas del recorrido -->
+            <div id="trip-panel">
+                <h3>Estadísticas</h3>
+
+                <!-- Contadores de viajes completados -->
+                <div class="counters-row">
+                    <div class="counter-box ida">
+                        <div class="c-label">🔴 IDA</div>
+                        <div class="c-num" id="count-ida">0</div>
+                        <div class="c-sub">T2 → T1</div>
+                    </div>
+                    <div class="counter-box vuelta">
+                        <div class="c-label">🔵 VUELTA</div>
+                        <div class="c-num" id="count-vuelta">0</div>
+                        <div class="c-sub">T1 → T2</div>
+                    </div>
+                </div>
+
+                <hr class="trip-divider">
+
+                <!-- Recorrido actual -->
+                <div id="trip-badge" class="trip-badge badge-waiting">⏳ Esperando salida</div>
+
+                <div class="trip-row">
+                    <span class="label">Salida:</span>
+                    <span class="value" id="stat-start">--:--:--</span>
+                </div>
+                <div class="trip-row">
+                    <span class="label">Llegada:</span>
+                    <span class="value" id="stat-end">--:--:--</span>
+                </div>
+                <div class="trip-row">
+                    <span class="label">Tiempo:</span>
+                    <span class="value" id="stat-elapsed">00:00:00</span>
+                </div>
+                <div class="trip-row">
+                    <span class="label">Vel. media:</span>
+                    <span class="value" id="stat-speed">-- km/h</span>
+                </div>
+                <div class="trip-row">
+                    <span class="label">Distancia:</span>
+                    <span class="value" id="stat-odometer">-- km</span>
+                </div>
+
+                <hr class="trip-divider">
+
+                <div class="distance-box normal" id="dist-box">
+                    <div class="dist-label" id="dist-label">Distancia a ruta</div>
+                    <span class="dist-value" id="stat-dist">--</span>
+                    <span class="dist-unit">metros</span>
+                </div>
+
+                <div class="deviation-count-box ok" id="dev-count-box">
+                    <span class="dev-label">Desvíos</span>
+                    <span class="dev-num" id="stat-dev-count">0</span>
+                </div>
+
+                <div id="deviation-list">
+                    <p class="no-deviations">Sin desvíos registrados</p>
+                </div>
+
+                <button id="reset-trip-btn">🔄 Reiniciar</button>
+                <button id="history-btn">📋 Ver historial</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal historial de viajes -->
+    <div id="history-modal" class="modal-overlay" style="display:none">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>📋 Historial de viajes</h2>
+                <button class="close-btn" id="close-history-btn">✕</button>
+            </div>
+            <div id="history-content"></div>
+            <div class="modal-footer">
+                <button id="clear-history-btn">🗑 Limpiar historial</button>
             </div>
         </div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     <script>
-        // ID unico de tu tracker (debe coincidir con el codigo de Arduino)
-        const THING_NAME = "mi-gps-tracker-unico-12345";
+        // ==================== CONFIGURACIÓN DE DISPOSITIVOS ====================
+        // Para agregar un dispositivo: crear canal en ThingSpeak y añadir una línea aquí
+        const DEVICES = [
+            { id: "bus1", name: "Interno 1", channel: "3264955", color: "#e74c3c" },
+            // { id: "bus2", name: "Bus 2", channel: "TU_CHANNEL_ID", color: "#2563eb" },
+            // { id: "bus3", name: "Bus 3", channel: "TU_CHANNEL_ID", color: "#27ae60" },
+        ];
 
-        // Inicializar mapa centrado en zona neutra (lat, lon, zoom)
-        var map = L.map('map').setView([-34.6037, -58.3816], 13); // Buenos Aires por defecto
+        // Estado en tiempo de ejecución por dispositivo
+        const ds = {};
+        DEVICES.forEach(dev => {
+            ds[dev.id] = {
+                enabled: true,
+                marker: null, circle: null, position: null,
+                tripState: 'waiting', tripDirection: null,
+                tripStartTime: null, tripEndTime: null,
+                deviations: [], offRouteCount: 0, currentlyOffRoute: false,
+                timerInterval: null, tripPositions: [], tripTotalDist: 0,
+                countIda: 0, countVuelta: 0,
+            };
+        });
+
+        // Dispositivo actualmente enfocado (muestra sus estadísticas en el panel)
+        let focusedDeviceId = DEVICES[0].id;
+
+        var map = L.map('map').setView([-34.6037, -58.3816], 13);
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             maxZoom: 19,
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        var marker = null;
-        var currentGPSPosition = null; // Guardar posición actual del GPS
 
         // === CONFIGURACIÓN DE RUTAS Y TERMINALES ===
 
-        // Coordenadas de las terminales
         const terminal1 = [-34.64156342985639, -58.36911794252859];
         const terminal2 = [-34.57382497011297, -58.40973918613616];
 
@@ -285,46 +912,32 @@
             [-34.57273, -58.410959], [-34.573138, -58.410466], [-34.573567, -58.410101], [-34.573799, -58.409758]
         ];
 
-        // Dibujar rutas en el mapa (guardar referencias para poder mostrar/ocultar)
+        // Dibujar rutas en el mapa
         var polylineIda = L.polyline(rutaIda, {
-            color: 'red',
-            weight: 3,
-            opacity: 0.7
+            color: 'red', weight: 3, opacity: 0.7
         }).addTo(map).bindPopup('Recorrido IDA');
 
         var polylineVuelta = L.polyline(rutaVuelta, {
-            color: 'blue',
-            weight: 3,
-            opacity: 0.7
+            color: 'blue', weight: 3, opacity: 0.7
         }).addTo(map).bindPopup('Recorrido VUELTA');
 
-        // Configurar filtros de rutas
         document.getElementById('show-ida').addEventListener('change', function (e) {
-            if (e.target.checked) {
-                map.addLayer(polylineIda);
-            } else {
-                map.removeLayer(polylineIda);
-            }
+            if (e.target.checked) map.addLayer(polylineIda);
+            else map.removeLayer(polylineIda);
         });
 
         document.getElementById('show-vuelta').addEventListener('change', function (e) {
-            if (e.target.checked) {
-                map.addLayer(polylineVuelta);
-            } else {
-                map.removeLayer(polylineVuelta);
-            }
+            if (e.target.checked) map.addLayer(polylineVuelta);
+            else map.removeLayer(polylineVuelta);
         });
 
-        // Botón para centrar en la posición GPS
         document.getElementById('center-gps-btn').addEventListener('click', function () {
-            if (currentGPSPosition) {
-                map.setView(currentGPSPosition, 15);
-            } else {
-                alert('Aún no hay datos de GPS disponibles');
-            }
+            const pos = ds[focusedDeviceId].position;
+            if (pos) map.setView(pos, 15);
+            else alert('Aún no hay datos de GPS disponibles');
         });
 
-        // Agregar marcadores de terminales
+        // Marcadores de terminales
         L.marker(terminal1, {
             icon: L.divIcon({
                 className: 'terminal-marker',
@@ -342,49 +955,537 @@
         }).addTo(map).bindPopup('<b>Terminal 2</b><br>Fin del recorrido');
 
 
-        function updateLocation() {
-            fetch(`https://dweet.cc/get/latest/dweet/for/${THING_NAME}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.this == "succeeded" && data.with.length > 0) {
-                        var content = data.with[0].content;
-                        var lat = parseFloat(content.lat);
-                        var lon = parseFloat(content.lon);
-                        // HDOP por defecto 5.0 si no viene
-                        var hdop = content.hdop ? parseFloat(content.hdop) : 5.0;
-                        var accuracyRadius = hdop * 10; // Estimacion aprox en metros
+        // ============================================================
+        // SELECTOR DE DISPOSITIVOS
+        // ============================================================
 
-                        var time = data.with[0].created;
+        function renderDeviceSelector() {
+            const container = document.getElementById('device-selector');
+            container.innerHTML = '';
+            DEVICES.forEach(dev => {
+                const d = ds[dev.id];
+                const isFocused = dev.id === focusedDeviceId;
+                const btn = document.createElement('button');
+                btn.className = 'device-btn' +
+                    (d.enabled  ? ' active'  : '') +
+                    (isFocused  ? ' focused' : '');
+                btn.style.setProperty('--dev-color', dev.color);
+                btn.innerHTML =
+                    `<span class="dev-dot" style="background:${d.enabled ? dev.color : '#ccc'}"></span>` +
+                    `<span>${dev.name}</span>`;
+                btn.title = d.enabled
+                    ? (isFocused ? `Desactivar ${dev.name}` : `Ver estadísticas de ${dev.name}`)
+                    : `Activar ${dev.name}`;
 
-                        document.getElementById('status').innerHTML =
-                            `<b>Última actualización:</b><br>${time}<br>Lat: ${lat}<br>Lon: ${lon}<br>Precisión: +/- ${accuracyRadius.toFixed(1)} m`;
-
-                        if (marker) {
-                            marker.setLatLng([lat, lon]);
-                            accuracyCircle.setLatLng([lat, lon]);
-                            accuracyCircle.setRadius(accuracyRadius);
-                        } else {
-                            marker = L.marker([lat, lon]).addTo(map);
-                            accuracyCircle = L.circle([lat, lon], {
-                                color: 'blue',
-                                fillColor: '#30f',
-                                fillOpacity: 0.1,
-                                radius: accuracyRadius
-                            }).addTo(map);
-                            // Solo centrar la primera vez que se obtiene GPS
-                            map.setView([lat, lon], 15);
+                btn.addEventListener('click', () => {
+                    if (!d.enabled) {
+                        // Activar y enfocar
+                        d.enabled = true;
+                        focusedDeviceId = dev.id;
+                    } else if (!isFocused) {
+                        // Solo enfocar (ya estaba activo)
+                        focusedDeviceId = dev.id;
+                    } else {
+                        // Desactivar (solo si hay otro activo)
+                        const otrosActivos = DEVICES.filter(x => ds[x.id].enabled && x.id !== dev.id);
+                        if (otrosActivos.length > 0) {
+                            d.enabled = false;
+                            if (d.marker) { map.removeLayer(d.marker); d.marker = null; }
+                            if (d.circle) { map.removeLayer(d.circle); d.circle = null; }
+                            focusedDeviceId = otrosActivos[0].id;
                         }
-
-                        // Guardar la posición actual (NO centrar automáticamente)
-                        currentGPSPosition = [lat, lon];
                     }
-                })
-                .catch(err => console.error("Error obteniendo datos:", err));
+                    renderDeviceSelector();
+                    updatePanel();
+                });
+                container.appendChild(btn);
+            });
         }
 
-        // Actualizar cada 5 segundos
-        setInterval(updateLocation, 5000);
-        updateLocation();
+
+        // ============================================================
+        // LÓGICA DE SEGUIMIENTO DE RECORRIDO
+        // ============================================================
+
+        const TERMINAL_RADIUS_M    = 100; // metros para detectar terminal
+        const DEVIATION_THRESHOLD_M = 100; // metros para desvío
+        const DEVIATION_DEBOUNCE    = 3;   // lecturas consecutivas fuera de ruta
+
+        // Estados:
+        //   'waiting'     → esperando detección en alguna terminal
+        //   'in_progress' → viaje en curso
+        //   'completed'   → viaje terminado, esperando que el vehículo deje la terminal de llegada
+
+
+        // ---- Utilidades ----
+
+        function haversineDistance(lat1, lon1, lat2, lon2) {
+            const R    = 6371000;
+            const phi1 = lat1 * Math.PI / 180;
+            const phi2 = lat2 * Math.PI / 180;
+            const dphi = (lat2 - lat1) * Math.PI / 180;
+            const dlam = (lon2 - lon1) * Math.PI / 180;
+            const a    = Math.sin(dphi / 2) ** 2 + Math.cos(phi1) * Math.cos(phi2) * Math.sin(dlam / 2) ** 2;
+            return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        }
+
+        function distanceToRoute(lat, lon, route) {
+            let minDist = Infinity;
+            for (const p of route) {
+                const d = haversineDistance(lat, lon, p[0], p[1]);
+                if (d < minDist) minDist = d;
+            }
+            return minDist;
+        }
+
+        function isNearTerminal(lat, lon, terminal) {
+            return haversineDistance(lat, lon, terminal[0], terminal[1]) <= TERMINAL_RADIUS_M;
+        }
+
+        function formatDuration(ms) {
+            if (ms < 0) ms = 0;
+            const s = Math.floor(ms / 1000);
+            const h = Math.floor(s / 3600);
+            const m = Math.floor((s % 3600) / 60);
+            const sec = s % 60;
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}`;
+        }
+
+        function formatTime(date) {
+            return date.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        }
+
+        // ---- Actualización del panel ----
+
+        function updatePanel() {
+            const d      = ds[focusedDeviceId];
+            const dev    = DEVICES.find(x => x.id === focusedDeviceId);
+            const badge    = document.getElementById('trip-badge');
+            const resetBtn = document.getElementById('reset-trip-btn');
+
+            // Título del panel con nombre del dispositivo enfocado
+            document.querySelector('#trip-panel h3').textContent = `Estadísticas · ${dev.name}`;
+
+            // Contadores
+            document.getElementById('count-ida').textContent    = d.countIda;
+            document.getElementById('count-vuelta').textContent = d.countVuelta;
+
+            // Badge de estado
+            if (d.tripState === 'waiting') {
+                badge.className  = 'trip-badge badge-waiting';
+                badge.textContent = '⏳ Esperando salida';
+                resetBtn.style.display = 'none';
+
+            } else if (d.tripState === 'in_progress') {
+                if (d.tripDirection === 'vuelta') {
+                    badge.className  = 'trip-badge badge-vuelta';
+                    badge.textContent = '🔵 VUELTA en curso (T1→T2)';
+                } else {
+                    badge.className  = 'trip-badge badge-ida';
+                    badge.textContent = '🔴 IDA en curso (T2→T1)';
+                }
+                resetBtn.className    = '';
+                resetBtn.style.display = 'block';
+
+            } else if (d.tripState === 'completed') {
+                if (d.tripDirection === 'vuelta') {
+                    badge.className  = 'trip-badge badge-done-vuelta';
+                    badge.textContent = '✅ VUELTA completada';
+                } else {
+                    badge.className  = 'trip-badge badge-done-ida';
+                    badge.textContent = '✅ IDA completada';
+                }
+                resetBtn.className    = 'primary';
+                resetBtn.style.display = 'block';
+            }
+
+            // Tiempos
+            document.getElementById('stat-start').textContent =
+                d.tripStartTime ? formatTime(d.tripStartTime) : '--:--:--';
+            document.getElementById('stat-end').textContent =
+                d.tripEndTime ? formatTime(d.tripEndTime) : '--:--:--';
+
+            let elapsedMs = 0;
+            if (d.tripState === 'in_progress' && d.tripStartTime) {
+                elapsedMs = Date.now() - d.tripStartTime.getTime();
+                document.getElementById('stat-elapsed').textContent = formatDuration(elapsedMs);
+            } else if (d.tripState === 'completed' && d.tripStartTime && d.tripEndTime) {
+                elapsedMs = d.tripEndTime.getTime() - d.tripStartTime.getTime();
+                document.getElementById('stat-elapsed').textContent = formatDuration(elapsedMs);
+            } else {
+                document.getElementById('stat-elapsed').textContent = '00:00:00';
+            }
+
+            // Velocidad media y distancia recorrida
+            const elapsedHours = elapsedMs / 3600000;
+            const distKm = d.tripTotalDist / 1000;
+            if (elapsedHours > 0 && distKm > 0) {
+                const avgSpeed = distKm / elapsedHours;
+                document.getElementById('stat-speed').textContent = avgSpeed.toFixed(1) + ' km/h';
+                document.getElementById('stat-odometer').textContent = distKm.toFixed(2) + ' km';
+            } else {
+                document.getElementById('stat-speed').textContent = '-- km/h';
+                document.getElementById('stat-odometer').textContent = '-- km';
+            }
+
+            // Desvíos
+            const devCountBox = document.getElementById('dev-count-box');
+            document.getElementById('stat-dev-count').textContent = d.deviations.length;
+            devCountBox.className = d.deviations.length === 0
+                ? 'deviation-count-box ok'
+                : 'deviation-count-box bad';
+
+            const devList = document.getElementById('deviation-list');
+            if (d.deviations.length === 0) {
+                devList.innerHTML = '<p class="no-deviations">✓ Sin desvíos registrados</p>';
+            } else {
+                devList.innerHTML = d.deviations.map(dev =>
+                    `<div class="deviation-item">
+                        <span class="dev-time">${formatTime(dev.time)}</span><br>
+                        <span class="dev-dist">⚠ ${dev.distance} m fuera de ruta</span>
+                    </div>`
+                ).join('');
+            }
+        }
+
+        function updateDistanceDisplay(distMeters, tripDirection) {
+            const distBox   = document.getElementById('dist-box');
+            const distVal   = document.getElementById('stat-dist');
+            const distLabel = document.getElementById('dist-label');
+
+            if (distMeters === null) {
+                distVal.textContent   = '--';
+                distBox.className     = 'distance-box normal';
+                distLabel.textContent = 'Distancia a ruta';
+                return;
+            }
+
+            distVal.textContent   = Math.round(distMeters);
+            const routeName       = tripDirection === 'ida' ? 'Distancia a ruta roja' : 'Distancia a ruta azul';
+            distLabel.textContent = routeName;
+            distBox.className     = distMeters > DEVIATION_THRESHOLD_M
+                ? 'distance-box alert'
+                : 'distance-box normal';
+        }
+
+        // ---- Máquina de estados del viaje ----
+
+        function processTripUpdate(lat, lon, deviceId) {
+            const d   = ds[deviceId];
+            const now = new Date();
+            const isFocused = deviceId === focusedDeviceId;
+
+            if (d.tripState === 'waiting') {
+                if (isNearTerminal(lat, lon, terminal1))      startTrip('vuelta', now, lat, lon, deviceId);
+                else if (isNearTerminal(lat, lon, terminal2)) startTrip('ida',    now, lat, lon, deviceId);
+
+            } else if (d.tripState === 'in_progress') {
+                const activeRoute         = d.tripDirection === 'vuelta' ? rutaVuelta : rutaIda;
+                const destinationTerminal = d.tripDirection === 'vuelta' ? terminal2  : terminal1;
+
+                const lastPos  = d.tripPositions[d.tripPositions.length - 1];
+                const stepDist = haversineDistance(lastPos[0], lastPos[1], lat, lon);
+                if (stepDist < 500) d.tripTotalDist += stepDist;
+                d.tripPositions.push([lat, lon]);
+
+                const distFromRoute = distanceToRoute(lat, lon, activeRoute);
+                if (isFocused) updateDistanceDisplay(distFromRoute, d.tripDirection);
+
+                if (distFromRoute > DEVIATION_THRESHOLD_M) {
+                    d.offRouteCount++;
+                    if (d.offRouteCount === DEVIATION_DEBOUNCE && !d.currentlyOffRoute) {
+                        d.currentlyOffRoute = true;
+                        d.deviations.push({ time: now, distance: Math.round(distFromRoute) });
+                    }
+                } else {
+                    d.offRouteCount     = 0;
+                    d.currentlyOffRoute = false;
+                }
+
+                if (isNearTerminal(lat, lon, destinationTerminal)) {
+                    d.tripState   = 'completed';
+                    d.tripEndTime = now;
+                    if (d.tripDirection === 'vuelta') d.countVuelta++;
+                    else d.countIda++;
+                    if (d.timerInterval) clearInterval(d.timerInterval);
+                    d.timerInterval = null;
+                    saveTrip(deviceId, d);
+                }
+
+            } else if (d.tripState === 'completed') {
+                const arrivalTerminal = d.tripDirection === 'vuelta' ? terminal2 : terminal1;
+                if (!isNearTerminal(lat, lon, arrivalTerminal)) {
+                    d.tripState     = 'waiting';
+                    d.tripDirection = null;
+                    if (isFocused) updateDistanceDisplay(null, null);
+                }
+            }
+
+            if (isFocused) updatePanel();
+        }
+
+        function startTrip(direction, startTime, startLat, startLon, deviceId) {
+            const d = ds[deviceId];
+            d.tripState        = 'in_progress';
+            d.tripDirection    = direction;
+            d.tripStartTime    = startTime;
+            d.tripEndTime      = null;
+            d.deviations       = [];
+            d.offRouteCount    = 0;
+            d.currentlyOffRoute = false;
+            d.tripPositions    = [[startLat, startLon]];
+            d.tripTotalDist    = 0;
+            if (deviceId === focusedDeviceId) updateDistanceDisplay(null, null);
+            if (d.timerInterval) clearInterval(d.timerInterval);
+            d.timerInterval = setInterval(updatePanel, 1000);
+        }
+
+        // Botón reiniciar (resetea el dispositivo enfocado)
+        document.getElementById('reset-trip-btn').addEventListener('click', function () {
+            const d = ds[focusedDeviceId];
+            if (d.timerInterval) clearInterval(d.timerInterval);
+            d.timerInterval     = null;
+            d.tripState         = 'waiting';
+            d.tripDirection     = null;
+            d.tripStartTime     = null;
+            d.tripEndTime       = null;
+            d.deviations        = [];
+            d.offRouteCount     = 0;
+            d.currentlyOffRoute = false;
+            d.tripPositions     = [];
+            d.tripTotalDist     = 0;
+            updateDistanceDisplay(null, null);
+            updatePanel();
+        });
+
+        // ============================================================
+        // ACTUALIZACIÓN DE POSICIÓN GPS
+        // ============================================================
+
+        function updateLocation(dev) {
+            const d = ds[dev.id];
+            if (!d.enabled) return;
+
+            fetch(`https://api.thingspeak.com/channels/${dev.channel}/feeds/last.json`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.field1 == null) return;
+
+                    const lat            = parseFloat(data.field1);
+                    const lon            = parseFloat(data.field2);
+                    const hdop           = data.field3 ? parseFloat(data.field3) : 5.0;
+                    const accuracyRadius = hdop * 10;
+                    const time           = data.created_at;
+
+                    // Crear o actualizar marcador del dispositivo
+                    if (d.marker) {
+                        d.marker.setLatLng([lat, lon]);
+                        d.circle.setLatLng([lat, lon]);
+                        d.circle.setRadius(accuracyRadius);
+                    } else {
+                        d.marker = L.marker([lat, lon], {
+                            icon: L.divIcon({
+                                className: '',
+                                html: `<div style="background:${dev.color};width:14px;height:14px;border-radius:50%;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,.4)"></div>`,
+                                iconSize: [14, 14],
+                                iconAnchor: [7, 7]
+                            })
+                        }).addTo(map).bindPopup(`<b>${dev.name}</b>`);
+                        d.circle = L.circle([lat, lon], {
+                            color: dev.color, fillColor: dev.color,
+                            fillOpacity: 0.1, radius: accuracyRadius
+                        }).addTo(map);
+                        if (dev.id === focusedDeviceId) map.setView([lat, lon], 15);
+                    }
+
+                    d.position = [lat, lon];
+                    processTripUpdate(lat, lon, dev.id);
+                    renderDeviceSelector();
+
+                    // Actualizar panel de estado solo para el dispositivo enfocado
+                    if (dev.id === focusedDeviceId) {
+                        document.getElementById('status').innerHTML =
+                            `<b>${dev.name} · Última actualización:</b><br>${time}<br>` +
+                            `Lat: ${lat}<br>Lon: ${lon}<br>Precisión: +/- ${accuracyRadius.toFixed(1)} m`;
+                        if (data.field4 != null) {
+                            updateDataMeter(
+                                parseInt(data.field4), parseInt(data.field5),
+                                parseInt(data.field6), parseInt(data.field7)
+                            );
+                        }
+                    }
+                })
+                .catch(err => console.error(`[${dev.name}] Error:`, err));
+        }
+
+        // ============================================================
+        // MEDIDOR DE CONSUMO DE DATOS — datos reales del SIM808
+        // ============================================================
+
+        // Barra visual: 10 MB como referencia de un día de uso
+        const DATA_BAR_MAX_BYTES = 10 * 1024 * 1024;
+
+        function formatBytes(bytes) {
+            if (bytes < 1024)            return bytes + ' B';
+            if (bytes < 1024 * 1024)     return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function secsToHMS(totalSec) {
+            const h   = Math.floor(totalSec / 3600);
+            const m   = Math.floor((totalSec % 3600) / 60);
+            const s   = totalSec % 60;
+            return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+        }
+
+        // Llamado con los valores que llegan desde el Arduino vía dweet
+        function updateDataMeter(bsent, brecv, reqs, uptimeSec) {
+            if (bsent == null) return; // todavía no hay datos del SIM808
+
+            const total    = bsent + brecv;
+            const rateKBh  = uptimeSec > 0
+                ? ((total / 1024) / (uptimeSec / 3600)).toFixed(1)
+                : '0';
+            const barPct   = Math.min((total / DATA_BAR_MAX_BYTES) * 100, 100);
+
+            document.getElementById('dm-sent').textContent     = formatBytes(bsent);
+            document.getElementById('dm-recv').textContent     = formatBytes(brecv);
+            document.getElementById('dm-total').textContent    = formatBytes(total);
+            document.getElementById('dm-requests').textContent = reqs;
+            document.getElementById('dm-rate').textContent     = rateKBh + ' KB/h';
+            document.getElementById('dm-uptime').textContent   = secsToHMS(uptimeSec);
+            document.getElementById('dm-bar').style.width      = barPct + '%';
+        }
+
+        // ============================================================
+        // HISTORIAL DE VIAJES (localStorage)
+        // ============================================================
+
+        const MAX_HISTORY = 500;
+        const LS_KEY      = 'gps_trip_history';
+
+        function loadHistory() {
+            try { return JSON.parse(localStorage.getItem(LS_KEY) || '[]'); }
+            catch (e) { return []; }
+        }
+
+        function persistHistory(history) {
+            localStorage.setItem(LS_KEY, JSON.stringify(history));
+        }
+
+        // Guarda un viaje completado
+        function saveTrip(deviceId, d) {
+            const dev        = DEVICES.find(x => x.id === deviceId);
+            const elapsedMs  = d.tripEndTime.getTime() - d.tripStartTime.getTime();
+            const elapsedH   = elapsedMs / 3600000;
+            const distKm     = d.tripTotalDist / 1000;
+            const avgSpeed   = elapsedH > 0 && distKm > 0 ? distKm / elapsedH : 0;
+
+            const trip = {
+                id:           Date.now(),
+                deviceId,
+                deviceName:   dev ? dev.name  : deviceId,
+                deviceColor:  dev ? dev.color : '#999',
+                direction:    d.tripDirection,
+                startTime:    d.tripStartTime.toISOString(),
+                endTime:      d.tripEndTime.toISOString(),
+                elapsedMs,
+                avgSpeedKmh:  parseFloat(avgSpeed.toFixed(1)),
+                distanceKm:   parseFloat(distKm.toFixed(2)),
+                deviationCount: d.deviations.length,
+                deviations:   d.deviations.map(dv => ({
+                    time: dv.time.toISOString(), distance: dv.distance
+                })),
+            };
+
+            const history = loadHistory();
+            history.unshift(trip);
+            if (history.length > MAX_HISTORY) history.length = MAX_HISTORY;
+            persistHistory(history);
+        }
+
+        // Renderiza el contenido del modal
+        function renderHistoryModal() {
+            const history = loadHistory();
+            const content = document.getElementById('history-content');
+
+            if (history.length === 0) {
+                content.innerHTML = '<p class="no-history">No hay viajes registrados aún.</p>';
+                return;
+            }
+
+            const rows = history.map(trip => {
+                const start    = new Date(trip.startTime);
+                const end      = new Date(trip.endTime);
+                const dateStr  = start.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+                const startStr = start.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+                const endStr   = end.toLocaleTimeString('es-AR',   { hour: '2-digit', minute: '2-digit' });
+                const dur      = formatDuration(trip.elapsedMs);
+                const dirBadge = trip.direction === 'ida'
+                    ? '<span class="dir-badge dir-ida">🔴 IDA</span>'
+                    : '<span class="dir-badge dir-vuelta">🔵 VUELTA</span>';
+                const devBadge = `<span class="dev-dot-sm" style="background:${trip.deviceColor}"></span>${trip.deviceName}`;
+                const devs     = trip.deviationCount > 0
+                    ? `<span style="color:#c0392b">⚠ ${trip.deviationCount}</span>`
+                    : `<span style="color:#27ae60">✓ 0</span>`;
+
+                return `<tr>
+                    <td>${dateStr}</td>
+                    <td>${startStr} – ${endStr}</td>
+                    <td>${devBadge}</td>
+                    <td>${dirBadge}</td>
+                    <td>${dur}</td>
+                    <td>${trip.avgSpeedKmh > 0 ? trip.avgSpeedKmh + ' km/h' : '--'}</td>
+                    <td>${trip.distanceKm > 0 ? trip.distanceKm + ' km' : '--'}</td>
+                    <td>${devs}</td>
+                </tr>`;
+            }).join('');
+
+            content.innerHTML = `
+                <table class="history-table">
+                    <thead><tr>
+                        <th>Fecha</th>
+                        <th>Horario</th>
+                        <th>Unidad</th>
+                        <th>Dirección</th>
+                        <th>Duración</th>
+                        <th>Vel. media</th>
+                        <th>Distancia</th>
+                        <th>Desvíos</th>
+                    </tr></thead>
+                    <tbody>${rows}</tbody>
+                </table>`;
+        }
+
+        // Eventos del modal
+        document.getElementById('history-btn').addEventListener('click', () => {
+            renderHistoryModal();
+            document.getElementById('history-modal').style.display = 'flex';
+        });
+
+        document.getElementById('close-history-btn').addEventListener('click', () => {
+            document.getElementById('history-modal').style.display = 'none';
+        });
+
+        document.getElementById('history-modal').addEventListener('click', e => {
+            if (e.target === document.getElementById('history-modal'))
+                document.getElementById('history-modal').style.display = 'none';
+        });
+
+        document.getElementById('clear-history-btn').addEventListener('click', () => {
+            if (confirm('¿Borrar todo el historial de viajes? Esta acción no se puede deshacer.')) {
+                localStorage.removeItem(LS_KEY);
+                renderHistoryModal();
+            }
+        });
+
+        // Inicialización
+        renderDeviceSelector();
+        updatePanel();
+        DEVICES.forEach(dev => {
+            updateLocation(dev);
+            setInterval(() => updateLocation(dev), 5000);
+        });
     </script>
 
 </body>
