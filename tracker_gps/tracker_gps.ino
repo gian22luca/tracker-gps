@@ -1,12 +1,53 @@
 #include <HardwareSerial.h>
+#include <DFRobotDFPlayerMini.h>
+#include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
+#include <ArduinoJson.h>
 
-// Configuración de pines
-// ESP32 GPIO 16 (RX2) <--- SIM808 TX
-// ESP32 GPIO 17 (TX2) ---> SIM808 RX
-#define SIM808_RX_PIN 16
+// =========================================================================
+// Librerias necesarias (Arduino IDE > Administrador de bibliotecas):
+//   - DFRobotDFPlayerMini   (DFRobot)
+//   - ESP32 HUB75 LED MATRIX PANEL DMA Display  (mrfaptastic)
+//   - ArduinoJson           (Benoit Blanchon)
+// =========================================================================
+
+// -------------------------------------------------------------------------
+// Pines (ver tabla en README del proyecto)
+// -------------------------------------------------------------------------
+// SIM808 UART2: RX=GPIO34 (input-only, recibe TX del SIM808), TX=GPIO17
+// GPIO16 esta reservado para HUB75_CLK, por eso el SIM808 no puede usarlo.
+#define SIM808_RX_PIN 34
 #define SIM808_TX_PIN 17
 
-HardwareSerial sim808(2); // UART2
+// PWRKEY del SIM808: cable soldado a la pata PWRKEY del boton fisico S2
+#define SIM808_PWRKEY_PIN 2
+
+// DFPlayer Mini UART1: RX=GPIO14, TX=GPIO13 (resistor 1k en serie hacia RX del DFPlayer)
+#define DFPLAYER_RX_PIN 14
+#define DFPLAYER_TX_PIN 13
+
+// HUB75 (2 paneles 64x32 encadenados = 128x32)
+#define HUB75_R1_PIN 25
+#define HUB75_G1_PIN 26
+#define HUB75_B1_PIN 27
+#define HUB75_R2_PIN 32
+#define HUB75_G2_PIN 33
+#define HUB75_B2_PIN 4
+#define HUB75_A_PIN  5
+#define HUB75_B_PIN  18
+#define HUB75_C_PIN  19
+#define HUB75_D_PIN  21
+#define HUB75_OE_PIN 22
+#define HUB75_LAT_PIN 23
+#define HUB75_CLK_PIN 16
+
+#define PANEL_RES_X 64
+#define PANEL_RES_Y 32
+#define PANEL_CHAIN 2 // 2 paneles de 64x32 -> 128x32 total
+
+HardwareSerial sim808(2);          // UART2 - SIM808
+HardwareSerial dfSerial(1);        // UART1 - DFPlayer Mini
+DFRobotDFPlayerMini dfPlayer;
+MatrixPanel_I2S_DMA *dma_display = nullptr;
 
 // --- CONFIGURACION GPRS (INTERNET) ---
 // Descomenta la linea de tu pais/APN correcto:
@@ -26,14 +67,58 @@ String pass = "clarogprs999";
 // String user = "f";
 // String pass = "f";
 
-// ThingSpeak
+// --- ThingSpeak: canal de telemetria (ya en uso) ---
 String tsApiKey  = "YZG43OQW28F0SML7";
+
+// --- ThingSpeak: canal de configuracion remota (pendiente de crear) ---
+String configChannelId  = "COMPLETAR_CHANNEL_ID";
+String configReadApiKey = "COMPLETAR_READ_API_KEY";
 
 // --- CONTADOR DE CONSUMO DE DATOS SIM808 ---
 unsigned long totalBytesSent     = 0;
 unsigned long totalBytesReceived = 0;
 unsigned long totalRequests      = 0;
 unsigned long dataStartMs        = 0;
+
+// -------------------------------------------------------------------------
+// Parametros configurables remotamente (valores por defecto, se
+// sobreescriben desde el canal de config de ThingSpeak, ver revisarConfigRemota())
+// -------------------------------------------------------------------------
+int volumenActual              = 20;      // 0-30 (DFPlayer)
+String textoDefault            = "LINEA 102 - VIXEL";
+int radioDeteccionParada       = 30;      // metros
+unsigned long intervaloSubidaMs = 15000;  // ms entre lecturas GPS / envios
+
+long ultimoEntryIdConfig = -1;
+unsigned long ultimaRevisionConfigMs = 0;
+const unsigned long INTERVALO_REVISION_CONFIG_MS = 60000; // cada 60s
+
+// -------------------------------------------------------------------------
+// Paradas del Ramal A: coordenadas placeholder, PENDIENTE reemplazar por
+// las coordenadas reales de las 4 paradas donde debe sonar cada audio.
+// track = numero de pista en la SD del DFPlayer (001.mp3 .. 004.mp3)
+// -------------------------------------------------------------------------
+struct Parada {
+  double lat;
+  double lon;
+  int radioDeteccion; // metros (se sincroniza con radioDeteccionParada)
+  int track;
+  String texto;       // texto mostrado en la pantalla LED al anunciar
+};
+
+Parada paradas[] = {
+  // TODO: coordenadas reales pendientes (placeholder cerca de -34.63)
+  { -34.6300, -58.4300, 30, 1, "PROXIMA PARADA 1" },
+  { -34.6310, -58.4310, 30, 2, "PROXIMA PARADA 2" },
+  { -34.6320, -58.4320, 30, 3, "PROXIMA PARADA 3" },
+  { -34.6330, -58.4330, 30, 4, "PROXIMA PARADA 4" },
+};
+const int NUM_PARADAS = sizeof(paradas) / sizeof(paradas[0]);
+bool paradaAnunciada[NUM_PARADAS] = { false, false, false, false };
+
+bool mostrandoTextoParada = false;
+unsigned long mostrandoParadaHastaMs = 0;
+const unsigned long DURACION_TEXTO_PARADA_MS = 20000;
 
 // -------------------------------------------------------
 // Enviar comando AT y retornar respuesta completa
@@ -107,6 +192,97 @@ bool ensureGPRS() {
   return configureGPRS();
 }
 
+// -------------------------------------------------------
+// Simular el apretón del boton fisico S2 (PWRKEY) para que
+// el SIM808 arranque solo al energizar, sin intervencion manual.
+// El SIM808 exige minimo ~1s de PWRKEY a GND para encender.
+// -------------------------------------------------------
+void encenderSIM808() {
+  Serial.println("Encendiendo SIM808 (simulando boton PWRKEY)...");
+  pinMode(SIM808_PWRKEY_PIN, OUTPUT);
+  digitalWrite(SIM808_PWRKEY_PIN, LOW);
+  delay(1500);
+  pinMode(SIM808_PWRKEY_PIN, INPUT); // alta impedancia: no interfiere con el boton fisico
+  delay(3000); // dar tiempo a que el modulo arranque
+}
+
+// -------------------------------------------------------
+// Inicializar pantalla LED HUB75 y mostrar el texto por defecto
+// -------------------------------------------------------
+void inicializarPantalla() {
+  HUB75_I2S_CFG::i2s_pins pines = {
+    HUB75_R1_PIN, HUB75_G1_PIN, HUB75_B1_PIN,
+    HUB75_R2_PIN, HUB75_G2_PIN, HUB75_B2_PIN,
+    HUB75_A_PIN, HUB75_B_PIN, HUB75_C_PIN, HUB75_D_PIN,
+    -1, // pin E: no se usa en paneles 1/16 scan (64x32)
+    HUB75_LAT_PIN, HUB75_OE_PIN, HUB75_CLK_PIN
+  };
+
+  HUB75_I2S_CFG mxconfig(PANEL_RES_X, PANEL_RES_Y, PANEL_CHAIN, pines);
+  dma_display = new MatrixPanel_I2S_DMA(mxconfig);
+  dma_display->begin();
+  dma_display->setBrightness8(90);
+  mostrarTexto(textoDefault);
+}
+
+// -------------------------------------------------------
+// Mostrar un texto estatico en la pantalla LED
+// -------------------------------------------------------
+void mostrarTexto(const String& texto) {
+  if (dma_display == nullptr) return;
+  dma_display->clearScreen();
+  dma_display->setTextSize(1);
+  dma_display->setTextColor(dma_display->color565(255, 255, 255));
+  dma_display->setCursor(0, 8);
+  dma_display->print(texto);
+}
+
+// -------------------------------------------------------
+// Distancia entre dos coordenadas GPS (formula de Haversine), en metros
+// -------------------------------------------------------
+double distanciaMetros(double lat1, double lon1, double lat2, double lon2) {
+  const double R = 6371000.0; // radio terrestre en metros
+  double dLat = radians(lat2 - lat1);
+  double dLon = radians(lon2 - lon1);
+  double a = sin(dLat / 2) * sin(dLat / 2) +
+             cos(radians(lat1)) * cos(radians(lat2)) * sin(dLon / 2) * sin(dLon / 2);
+  double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+  return R * c;
+}
+
+// -------------------------------------------------------
+// Revisar si el colectivo entro al radio de alguna parada y,
+// si es asi, reproducir el audio correspondiente y mostrarlo en pantalla.
+// Usa un flag por parada + histeresis (3x el radio) para no repetir el
+// anuncio mientras el bus sigue dentro del radio de deteccion.
+// -------------------------------------------------------
+void revisarParadas(double latActual, double lonActual) {
+  for (int i = 0; i < NUM_PARADAS; i++) {
+    double d = distanciaMetros(latActual, lonActual, paradas[i].lat, paradas[i].lon);
+
+    if (d <= paradas[i].radioDeteccion) {
+      if (!paradaAnunciada[i]) {
+        paradaAnunciada[i] = true;
+        Serial.print("[PARADA] Anunciando parada "); Serial.print(i + 1);
+        Serial.print(" (dist="); Serial.print(d, 1); Serial.println("m)");
+
+        dfPlayer.play(paradas[i].track);
+        mostrarTexto(paradas[i].texto);
+        mostrandoTextoParada = true;
+        mostrandoParadaHastaMs = millis() + DURACION_TEXTO_PARADA_MS;
+      }
+    } else if (d > paradas[i].radioDeteccion * 3) {
+      paradaAnunciada[i] = false; // se alejo lo suficiente, se puede reanunciar en la vuelta
+    }
+  }
+
+  // Volver al texto por defecto una vez que paso el tiempo de anuncio
+  if (mostrandoTextoParada && millis() > mostrandoParadaHastaMs) {
+    mostrandoTextoParada = false;
+    mostrarTexto(textoDefault);
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   // Esperar Serial con timeout (evita bloqueo sin USB)
@@ -117,6 +293,8 @@ void setup() {
   dataStartMs = millis();
   Serial.println("--- GPS CLOUD TRACKER SIM808 ---");
   Serial.println("Inicializando...");
+
+  encenderSIM808();
 
   sim808.begin(9600, SERIAL_8N1, SIM808_RX_PIN, SIM808_TX_PIN);
   delay(2000); // dejar que el SIM808 termine su boot y sus dots
@@ -130,6 +308,20 @@ void setup() {
   while (sim808.available()) sim808.read(); // descartar respuesta
 
   configureGPRS();
+
+  Serial.println("Inicializando DFPlayer Mini...");
+  dfSerial.begin(9600, SERIAL_8N1, DFPLAYER_RX_PIN, DFPLAYER_TX_PIN);
+  if (dfPlayer.begin(dfSerial)) {
+    dfPlayer.volume(volumenActual);
+    Serial.println("DFPlayer OK.");
+  } else {
+    Serial.println("[WARN] DFPlayer no respondio. Revisar cableado/SD.");
+  }
+
+  Serial.println("Inicializando pantalla HUB75...");
+  inicializarPantalla();
+
+  ultimaRevisionConfigMs = millis();
 
   Serial.println("\nSistema listo. Esperando señal GPS...");
   Serial.println("-----------------------------------------------------");
@@ -165,6 +357,9 @@ void loop() {
       Serial.print(" HDOP: "); Serial.println(hdop);
 
       if (hdop.toFloat() < 5.0 && latitude.length() > 5) {
+        double latVal = atof(latitude.c_str());
+        double lonVal = atof(longitude.c_str());
+        revisarParadas(latVal, lonVal);
         sendLocation(latitude, longitude, hdop);
       } else {
         Serial.println("Precision baja o datos invalidos. Ignorando envio.");
@@ -182,7 +377,12 @@ void loop() {
     }
   }
 
-  delay(15000);
+  if (millis() - ultimaRevisionConfigMs > INTERVALO_REVISION_CONFIG_MS) {
+    revisarConfigRemota();
+    ultimaRevisionConfigMs = millis();
+  }
+
+  delay(intervaloSubidaMs);
 }
 
 // -------------------------------------------------------
@@ -215,10 +415,12 @@ bool httpInit() {
 }
 
 // -------------------------------------------------------
-// Enviar ubicacion a dweet.cc
-// Retorna true si el servidor respondio 200
+// Ejecutar un HTTP GET sobre la sesion del SIM808.
+// Si se pasa outBody, ahi se copia el texto crudo de AT+HTTPREAD
+// (usado por revisarConfigRemota() para parsear el JSON de ThingSpeak).
+// Retorna true si el servidor respondio 200.
 // -------------------------------------------------------
-bool doHTTPGet(const String& url) {
+bool doHTTPGet(const String& url, String* outBody = nullptr) {
   // Cerrar sesion previa antes de empezar
   httpClose();
 
@@ -307,14 +509,16 @@ bool doHTTPGet(const String& url) {
 
   // Leer respuesta del servidor
   Serial.println("\nRespuesta del servidor:");
-  sendAT("AT+HTTPREAD", 2000);
+  String readResp = sendAT("AT+HTTPREAD", 3000);
+  Serial.println(readResp);
+  if (outBody != nullptr) *outBody = readResp;
 
   httpClose();
   return success;
 }
 
 void sendLocation(String lat, String lon, String hdop) {
-  Serial.println("Enviando datos a la nube (dweet.cc)...");
+  Serial.println("Enviando datos a la nube (ThingSpeak)...");
 
   // Verificar GPRS; reconectar si es necesario
   if (!ensureGPRS()) {
@@ -376,6 +580,79 @@ void sendLocation(String lat, String lon, String hdop) {
   }
   Serial.println("╚═════════════════════════════╝");
   Serial.println("--- Fin intento envio ---");
+}
+
+// -------------------------------------------------------
+// Consultar el canal de configuracion remota de ThingSpeak (cada 60s) y
+// aplicar en RAM los cambios de volumen / texto / radio de parada /
+// intervalo de subida, si el entry_id cambio desde la ultima lectura.
+// No hace nada mientras configChannelId/configReadApiKey no esten
+// completados (ver constantes arriba).
+// -------------------------------------------------------
+void revisarConfigRemota() {
+  if (configChannelId == "COMPLETAR_CHANNEL_ID" || configReadApiKey == "COMPLETAR_READ_API_KEY") {
+    return; // canal de config todavia no creado
+  }
+
+  if (!ensureGPRS()) {
+    Serial.println("[CONFIG] Sin conexion GPRS. Se reintenta en el proximo ciclo.");
+    return;
+  }
+
+  String url = "http://api.thingspeak.com/channels/" + configChannelId +
+               "/feeds/last.json?api_key=" + configReadApiKey;
+
+  String body;
+  if (!doHTTPGet(url, &body)) {
+    Serial.println("[CONFIG] No se pudo leer el canal de configuracion.");
+    return;
+  }
+
+  int start = body.indexOf('{');
+  int end   = body.lastIndexOf('}');
+  if (start == -1 || end == -1 || end <= start) {
+    Serial.println("[CONFIG] Respuesta sin JSON valido.");
+    return;
+  }
+  String json = body.substring(start, end + 1);
+
+  StaticJsonDocument<512> doc;
+  DeserializationError err = deserializeJson(doc, json);
+  if (err) {
+    Serial.print("[CONFIG] Error parseando JSON: "); Serial.println(err.c_str());
+    return;
+  }
+
+  long entryId = doc["entry_id"] | -1;
+  if (entryId < 0 || entryId == ultimoEntryIdConfig) {
+    Serial.println("[CONFIG] Sin cambios.");
+    return;
+  }
+  ultimoEntryIdConfig = entryId;
+
+  // field1=volumen, field2=texto default, field3=radio deteccion (m), field4=intervalo subida (s)
+  int nuevoVolumen = doc["field1"] | volumenActual;
+  const char* nuevoTexto = doc["field2"] | textoDefault.c_str();
+  int nuevoRadio = doc["field3"] | radioDeteccionParada;
+  long nuevoIntervaloSeg = doc["field4"] | (long)(intervaloSubidaMs / 1000);
+
+  volumenActual = constrain(nuevoVolumen, 0, 30);
+  dfPlayer.volume(volumenActual);
+
+  textoDefault = String(nuevoTexto);
+  if (!mostrandoTextoParada) mostrarTexto(textoDefault);
+
+  radioDeteccionParada = nuevoRadio;
+  for (int i = 0; i < NUM_PARADAS; i++) paradas[i].radioDeteccion = radioDeteccionParada;
+
+  if (nuevoIntervaloSeg > 0) intervaloSubidaMs = (unsigned long)nuevoIntervaloSeg * 1000UL;
+
+  Serial.println("[CONFIG] Configuracion remota aplicada:");
+  Serial.print("  volumen="); Serial.print(volumenActual);
+  Serial.print(" texto=\""); Serial.print(textoDefault);
+  Serial.print("\" radio="); Serial.print(radioDeteccionParada);
+  Serial.print("m intervalo="); Serial.print(intervaloSubidaMs / 1000);
+  Serial.println("s");
 }
 
 // Funcion auxiliar para separar por comas
