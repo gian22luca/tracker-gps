@@ -1,20 +1,25 @@
 #include <HardwareSerial.h>
 #include <DFRobotDFPlayerMini.h>
-#include <ESP32-HUB75-MatrixPanel-I2S-DMA.h>
+#include <SoftwareSerial.h>
 #include <ArduinoJson.h>
 
 // =========================================================================
 // Librerias necesarias (Arduino IDE > Administrador de bibliotecas):
 //   - DFRobotDFPlayerMini   (DFRobot)
-//   - ESP32 HUB75 LED MATRIX PANEL DMA Display  (mrfaptastic)
+//   - EspSoftwareSerial     (Peter Lerup) - link con el ESP32 de la pantalla
 //   - ArduinoJson           (Benoit Blanchon)
+//
+// La pantalla HUB75 NO se maneja desde esta placa: vive en un segundo
+// ESP32 dedicado (ver pantalla_led/pantalla_led.ino) para no competir por
+// GPIOs ni tiempo de CPU con el GPRS/GPS/DFPlayer. Este tracker solo le
+// manda el texto a mostrar por un link serial de un cable (ver
+// LINK_TX_PIN / LINK_RX_PIN mas abajo).
 // =========================================================================
 
 // -------------------------------------------------------------------------
 // Pines (ver tabla en README del proyecto)
 // -------------------------------------------------------------------------
 // SIM808 UART2: RX=GPIO34 (input-only, recibe TX del SIM808), TX=GPIO17
-// GPIO16 esta reservado para HUB75_CLK, por eso el SIM808 no puede usarlo.
 #define SIM808_RX_PIN 34
 #define SIM808_TX_PIN 17
 
@@ -25,29 +30,17 @@
 #define DFPLAYER_RX_PIN 14
 #define DFPLAYER_TX_PIN 13
 
-// HUB75 (2 paneles 64x32 encadenados = 128x32)
-#define HUB75_R1_PIN 25
-#define HUB75_G1_PIN 26
-#define HUB75_B1_PIN 27
-#define HUB75_R2_PIN 32
-#define HUB75_G2_PIN 33
-#define HUB75_B2_PIN 4
-#define HUB75_A_PIN  5
-#define HUB75_B_PIN  18
-#define HUB75_C_PIN  19
-#define HUB75_D_PIN  21
-#define HUB75_OE_PIN 22
-#define HUB75_LAT_PIN 23
-#define HUB75_CLK_PIN 16
-
-#define PANEL_RES_X 64
-#define PANEL_RES_Y 32
-#define PANEL_CHAIN 2 // 2 paneles de 64x32 -> 128x32 total
+// Link serial hacia el ESP32 de la pantalla (ver pantalla_led.ino).
+// Pines libres ahora que el HUB75 se fue a la otra placa. UART0/1/2 de
+// hardware ya estan ocupados (debug/DFPlayer/SIM808), por eso este es un
+// SoftwareSerial.
+#define LINK_RX_PIN 26 // sin uso real por ahora, queda para un futuro ACK
+#define LINK_TX_PIN 25
 
 HardwareSerial sim808(2);          // UART2 - SIM808
 HardwareSerial dfSerial(1);        // UART1 - DFPlayer Mini
 DFRobotDFPlayerMini dfPlayer;
-MatrixPanel_I2S_DMA *dma_display = nullptr;
+SoftwareSerial pantallaLink(LINK_RX_PIN, LINK_TX_PIN); // hacia el ESP32 de la pantalla
 
 // --- CONFIGURACION GPRS (INTERNET) ---
 // Descomenta la linea de tu pais/APN correcto:
@@ -207,34 +200,13 @@ void encenderSIM808() {
 }
 
 // -------------------------------------------------------
-// Inicializar pantalla LED HUB75 y mostrar el texto por defecto
-// -------------------------------------------------------
-void inicializarPantalla() {
-  HUB75_I2S_CFG::i2s_pins pines = {
-    HUB75_R1_PIN, HUB75_G1_PIN, HUB75_B1_PIN,
-    HUB75_R2_PIN, HUB75_G2_PIN, HUB75_B2_PIN,
-    HUB75_A_PIN, HUB75_B_PIN, HUB75_C_PIN, HUB75_D_PIN,
-    -1, // pin E: no se usa en paneles 1/16 scan (64x32)
-    HUB75_LAT_PIN, HUB75_OE_PIN, HUB75_CLK_PIN
-  };
-
-  HUB75_I2S_CFG mxconfig(PANEL_RES_X, PANEL_RES_Y, PANEL_CHAIN, pines);
-  dma_display = new MatrixPanel_I2S_DMA(mxconfig);
-  dma_display->begin();
-  dma_display->setBrightness8(90);
-  mostrarTexto(textoDefault);
-}
-
-// -------------------------------------------------------
-// Mostrar un texto estatico en la pantalla LED
+// Pedirle al ESP32 de la pantalla que muestre un texto, mandandolo por el
+// link serial (protocolo de linea: "TXT:<texto>\n", ver pantalla_led.ino)
 // -------------------------------------------------------
 void mostrarTexto(const String& texto) {
-  if (dma_display == nullptr) return;
-  dma_display->clearScreen();
-  dma_display->setTextSize(1);
-  dma_display->setTextColor(dma_display->color565(255, 255, 255));
-  dma_display->setCursor(0, 8);
-  dma_display->print(texto);
+  pantallaLink.print("TXT:");
+  pantallaLink.print(texto);
+  pantallaLink.print("\n");
 }
 
 // -------------------------------------------------------
@@ -318,8 +290,10 @@ void setup() {
     Serial.println("[WARN] DFPlayer no respondio. Revisar cableado/SD.");
   }
 
-  Serial.println("Inicializando pantalla HUB75...");
-  inicializarPantalla();
+  Serial.println("Inicializando link con ESP32 de la pantalla...");
+  pantallaLink.begin(9600);
+  delay(100);
+  mostrarTexto(textoDefault);
 
   ultimaRevisionConfigMs = millis();
 
