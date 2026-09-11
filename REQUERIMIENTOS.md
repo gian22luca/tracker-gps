@@ -52,7 +52,20 @@ más amplia de comunicación y monitoreo para empresas de transporte.
 - Volver a mostrar un texto por defecto (por ejemplo, el número de línea)
   cuando no hay un anuncio activo.
 
-### Etapa 3 — Conectividad a bordo
+### Etapa 3 — Publicidad rotativa en el cartel
+*(diseñada, pendiente de desarrollo)*
+
+- Mostrar contenido publicitario o institucional en el cartel interior
+  cuando no hay un anuncio de parada activo.
+- El anuncio de la próxima parada siempre tiene prioridad: interrumpe la
+  publicidad en curso, se muestra, y la publicidad se reanuda después.
+- Administrar el contenido publicitario a mostrar desde el mismo panel
+  central pensado para los avisos al chofer (Etapa 5), sin necesidad de
+  intervenir cada colectivo físicamente.
+- Esta etapa depende de que exista el panel central de mensajería de la
+  Etapa 5, por eso su desarrollo queda pendiente hasta entonces.
+
+### Etapa 4 — Conectividad a bordo
 *(diseñada, pendiente de desarrollo)*
 
 - Ofrecer conexión a internet inalámbrica a los pasajeros dentro del
@@ -62,7 +75,7 @@ más amplia de comunicación y monitoreo para empresas de transporte.
 - Mantener separada la red de pasajeros de la red del sistema de rastreo,
   por seguridad y estabilidad.
 
-### Etapa 4 — Comunicación con el chofer
+### Etapa 5 — Comunicación con el chofer
 *(diseñada, pendiente de desarrollo)*
 
 - Permitir que la central envíe avisos breves (por ejemplo, desvíos o
@@ -73,14 +86,14 @@ más amplia de comunicación y monitoreo para empresas de transporte.
 - Darle a la central un panel para ver el historial de avisos enviados y
   las confirmaciones recibidas, con acceso por usuario.
 
-### Etapa 5 — Monitoreo de controles del colectivo
+### Etapa 6 — Monitoreo de controles del colectivo
 *(documentada, desarrollo pospuesto a propósito)*
 
 - Informar el estado de los controles eléctricos del colectivo — por
   ejemplo, si un control fue accionado y si efectivamente respondió.
 - Alertar cuando un control no responde como se esperaba, para facilitar
   el mantenimiento preventivo.
-- Esta etapa depende de que la Etapa 4 esté implementada, por eso su
+- Esta etapa depende de que la Etapa 5 esté implementada, por eso su
   desarrollo queda pospuesto hasta entonces.
 
 ## 5. Requerimientos generales del sistema
@@ -101,16 +114,58 @@ más amplia de comunicación y monitoreo para empresas de transporte.
 
 - Cobro de pasajes o integración con sistemas de boletería.
 - Videovigilancia o cámaras a bordo.
-- Publicidad o contenido multimedia en el cartel, más allá del nombre de
-  la parada.
+- Video o imágenes de alta resolución en el cartel interior: por su
+  tamaño y resolución, el cartel está pensado para texto y gráficos
+  simples, no para reproducir video.
 - Cualquier funcionalidad no descripta en este documento.
 
-## 7. Estado actual
+## 7. Panel web de seguimiento en tiempo real
+
+Ya existe y está en uso un panel web para la central / despachante, con la
+posición de cada colectivo en un mapa en vivo. A continuación se muestra
+una captura y el detalle de toda la información que ofrece hoy.
+
+![Panel web de seguimiento](dashboard-web.png)
+
+**Datos que muestra el panel:**
+
+- **Ubicación en el mapa**: cada colectivo aparece como un marcador sobre
+  el mapa, en su posición actual.
+- **Al tocar un colectivo en el mapa**: nombre del colectivo, hora de la
+  última actualización recibida, latitud, longitud, y la precisión
+  estimada de esa ubicación (en metros).
+- **Selector de colectivos**: permite elegir qué colectivo (o colectivos)
+  de la flota se están viendo en el mapa en un momento dado.
+- **Filtro por sentido de recorrido**: permite mostrar solo los viajes de
+  ida, solo los de vuelta, o ambos, cada uno identificado con un color
+  distinto en el mapa.
+- **Botón para centrar el mapa** automáticamente sobre la posición del
+  colectivo seleccionado.
+- **Estado del viaje en curso**: un indicador que muestra si el colectivo
+  está esperando salida, en viaje de ida, en viaje de vuelta, o si acaba
+  de completar un viaje.
+- **Datos del viaje actual**: hora de salida, hora de llegada (cuando
+  corresponde), tiempo transcurrido, velocidad promedio y distancia
+  recorrida.
+- **Control de desvíos de ruta**: qué tan lejos está el colectivo de su
+  recorrido habitual, y un contador de desvíos detectados durante el
+  viaje, con el horario y la distancia de cada uno.
+- **Consumo de datos del dispositivo**: cuántos datos envió y recibió el
+  equipo instalado en el colectivo, cuántos reportes mandó, a qué
+  velocidad está consumiendo datos, y hace cuánto tiempo está encendido
+  de forma continua (sin cortes).
+- **Historial de viajes**: un listado con todos los viajes anteriores de
+  cada colectivo — fecha, horario, unidad, sentido (ida/vuelta),
+  duración, velocidad promedio, distancia recorrida y desvíos
+  registrados — con la opción de borrar ese historial.
+
+## 8. Estado actual
 
 | Etapa | Estado |
 |---|---|
 | 1 — Rastreo y anuncio de paradas | Desarrollada, en prueba real |
 | 2 — Cartel visual | Desarrollada |
-| 3 — Conectividad a bordo | Diseñada, pendiente |
-| 4 — Comunicación con el chofer | Diseñada, pendiente |
-| 5 — Monitoreo de controles | Documentada, pospuesta |
+| 3 — Publicidad rotativa en el cartel | Diseñada, pendiente |
+| 4 — Conectividad a bordo | Diseñada, pendiente |
+| 5 — Comunicación con el chofer | Diseñada, pendiente |
+| 6 — Monitoreo de controles | Documentada, pospuesta |
