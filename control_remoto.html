@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <title>Control Remoto - Linea 102</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f2f3f7;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header img {
+            max-height: 60px;
+            height: auto;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .field {
+            margin-bottom: 14px;
+        }
+
+        .field label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .field small {
+            display: block;
+            color: #888;
+            font-size: 11px;
+            margin-top: 4px;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+        }
+
+        .range-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .range-row span {
+            min-width: 28px;
+            text-align: right;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+        }
+
+        #btn-guardar-credenciales {
+            background-color: #555;
+        }
+
+        #btn-guardar-credenciales:hover {
+            background-color: #444;
+        }
+
+        #btn-leer-actual {
+            background-color: #888;
+            margin-top: 8px;
+        }
+
+        #btn-leer-actual:hover {
+            background-color: #777;
+        }
+
+        #btn-actualizar {
+            background-color: #667eea;
+        }
+
+        #btn-actualizar:hover {
+            background-color: #5568d3;
+        }
+
+        #estado {
+            margin-top: 12px;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 13px;
+            display: none;
+        }
+
+        #estado.ok {
+            display: block;
+            background: #e6f7ec;
+            color: #1e7e34;
+        }
+
+        #estado.error {
+            display: block;
+            background: #fdecea;
+            color: #c0392b;
+        }
+
+        #estado.info {
+            display: block;
+            background: #eef1fd;
+            color: #444;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="vixel-logo.jpg" alt="Vixel">
+        </div>
+
+        <div class="card">
+            <h2>Credenciales del canal de configuracion (ThingSpeak)</h2>
+            <div class="field">
+                <label for="channel-id">Channel ID</label>
+                <input type="text" id="channel-id" placeholder="Ej: 1234567">
+            </div>
+            <div class="field">
+                <label for="write-key">Write API Key</label>
+                <input type="password" id="write-key" placeholder="Clave de escritura del canal">
+            </div>
+            <div class="field">
+                <label for="read-key">Read API Key</label>
+                <input type="password" id="read-key" placeholder="Clave de lectura del canal (opcional, para leer valores actuales)">
+                <small>Se guardan en este navegador (localStorage) para no reingresarlas cada vez. No se envian a ningun servidor mas que ThingSpeak.</small>
+            </div>
+            <button id="btn-guardar-credenciales">Guardar credenciales</button>
+            <button id="btn-leer-actual">Leer valores actuales del dispositivo</button>
+        </div>
+
+        <div class="card">
+            <h2>Parametros del dispositivo</h2>
+
+            <div class="field">
+                <label for="volumen">Volumen del audio (field1)</label>
+                <div class="range-row">
+                    <input type="range" id="volumen" min="0" max="30" value="20">
+                    <span id="volumen-valor">20</span>
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="texto">Texto por defecto en pantalla (field2)</label>
+                <input type="text" id="texto" maxlength="64" placeholder="LINEA 102 - VIXEL">
+            </div>
+
+            <div class="field">
+                <label for="radio">Radio de deteccion de parada en metros (field3)</label>
+                <input type="number" id="radio" min="5" max="200" value="30">
+            </div>
+
+            <div class="field">
+                <label for="intervalo">Intervalo de subida a ThingSpeak en segundos (field4)</label>
+                <input type="number" id="intervalo" min="15" max="600" value="15">
+                <small>ThingSpeak (plan gratuito) no acepta actualizaciones mas seguidas que cada 15s.</small>
+            </div>
+
+            <button id="btn-actualizar">Actualizar dispositivo</button>
+            <div id="estado"></div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = "vixel_control_remoto_credenciales";
+
+        const els = {
+            channelId: document.getElementById("channel-id"),
+            writeKey: document.getElementById("write-key"),
+            readKey: document.getElementById("read-key"),
+            volumen: document.getElementById("volumen"),
+            volumenValor: document.getElementById("volumen-valor"),
+            texto: document.getElementById("texto"),
+            radio: document.getElementById("radio"),
+            intervalo: document.getElementById("intervalo"),
+            estado: document.getElementById("estado"),
+        };
+
+        function cargarCredenciales() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEY);
+                if (!raw) return;
+                const datos = JSON.parse(raw);
+                els.channelId.value = datos.channelId || "";
+                els.writeKey.value = datos.writeKey || "";
+                els.readKey.value = datos.readKey || "";
+            } catch (e) {
+                console.warn("No se pudieron cargar las credenciales guardadas", e);
+            }
+        }
+
+        function guardarCredenciales() {
+            try {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify({
+                    channelId: els.channelId.value.trim(),
+                    writeKey: els.writeKey.value.trim(),
+                    readKey: els.readKey.value.trim(),
+                }));
+                mostrarEstado("ok", "Credenciales guardadas en este navegador.");
+            } catch (e) {
+                mostrarEstado("error", "No se pudieron guardar las credenciales: " + e.message);
+            }
+        }
+
+        function mostrarEstado(tipo, mensaje) {
+            els.estado.className = tipo;
+            els.estado.textContent = mensaje;
+        }
+
+        els.volumen.addEventListener("input", () => {
+            els.volumenValor.textContent = els.volumen.value;
+        });
+
+        document.getElementById("btn-guardar-credenciales").addEventListener("click", guardarCredenciales);
+
+        document.getElementById("btn-leer-actual").addEventListener("click", async () => {
+            const channelId = els.channelId.value.trim();
+            const readKey = els.readKey.value.trim();
+            if (!channelId || !readKey) {
+                mostrarEstado("error", "Falta Channel ID o Read API Key.");
+                return;
+            }
+            mostrarEstado("info", "Leyendo valores actuales...");
+            try {
+                const url = `https://api.thingspeak.com/channels/${encodeURIComponent(channelId)}/feeds/last.json?api_key=${encodeURIComponent(readKey)}`;
+                const resp = await fetch(url);
+                if (!resp.ok) throw new Error("HTTP " + resp.status);
+                const data = await resp.json();
+                if (data.field1 !== undefined && data.field1 !== null) {
+                    els.volumen.value = data.field1;
+                    els.volumenValor.textContent = data.field1;
+                }
+                if (data.field2) els.texto.value = data.field2;
+                if (data.field3 !== undefined && data.field3 !== null) els.radio.value = data.field3;
+                if (data.field4 !== undefined && data.field4 !== null) els.intervalo.value = data.field4;
+                mostrarEstado("ok", "Valores actuales cargados (entry_id " + data.entry_id + ").");
+            } catch (e) {
+                mostrarEstado("error", "No se pudo leer el canal: " + e.message);
+            }
+        });
+
+        document.getElementById("btn-actualizar").addEventListener("click", async () => {
+            const channelId = els.channelId.value.trim();
+            const writeKey = els.writeKey.value.trim();
+            if (!channelId || !writeKey) {
+                mostrarEstado("error", "Falta Channel ID o Write API Key.");
+                return;
+            }
+
+            const params = new URLSearchParams({
+                api_key: writeKey,
+                field1: els.volumen.value,
+                field2: els.texto.value || "LINEA 102 - VIXEL",
+                field3: els.radio.value,
+                field4: els.intervalo.value,
+            });
+
+            mostrarEstado("info", "Enviando actualizacion...");
+            try {
+                const resp = await fetch("https://api.thingspeak.com/update?" + params.toString());
+                const entryId = await resp.text();
+                if (!resp.ok || entryId === "0") {
+                    throw new Error("ThingSpeak rechazo la actualizacion (respuesta: " + entryId + ")");
+                }
+                mostrarEstado("ok", "Dispositivo actualizado. El ESP32 va a tomar los cambios en menos de 60s (entry_id " + entryId + ").");
+            } catch (e) {
+                mostrarEstado("error", "Error al actualizar: " + e.message);
+            }
+        });
+
+        cargarCredenciales();
+    </script>
+</body>
+
+</html>
