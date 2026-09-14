@@ -51,6 +51,37 @@ Servidor en `http://127.0.0.1:8000/`.
 `/admin/` tiene el panel de administración de Django (gestión de flota,
 usuarios y paradas sin tocar código).
 
+## Deploy
+
+**Frontend (`index.html`, `control_remoto.html`) en Vercel** — es justo lo
+que Vercel hace mejor: sitio estático, CDN, deploy en cada push. Import
+Project apuntando a la raíz del repo (no a `backend/`).
+
+**Backend (esta carpeta) en Railway o Render**, no en Vercel — Django es un
+proceso persistente con base de datos, no encaja bien en el modelo
+serverless de Vercel (filesystem efímero, cold starts, migraciones que no
+tienen un buen lugar donde correrse). Railway/Render te dan el proceso
+persistente + Postgres pegado con un click.
+
+Pasos (Railway o Render, son casi idénticos):
+
+1. Crear el servicio apuntando a la carpeta `backend/` del repo.
+2. Agregar una base Postgres (add-on de un click en ambos) — la plataforma
+   inyecta `DATABASE_URL` sola, `settings.py` ya la lee automáticamente.
+3. Variables de entorno a setear: `DJANGO_SECRET_KEY` (generar una nueva,
+   no usar la de desarrollo), `DJANGO_DEBUG=false`, `DJANGO_ALLOWED_HOSTS`
+   (el dominio que te asigne la plataforma), `DJANGO_CORS_ALLOWED_ORIGINS`
+   (el dominio de Vercel del frontend).
+4. Build command: `pip install -r requirements.txt && python manage.py collectstatic --noinput && python manage.py migrate`
+5. Start command: `gunicorn vixel_backend.wsgi` (agregar `gunicorn` a
+   `requirements.txt` si la plataforma no lo incluye por defecto).
+6. `python manage.py createsuperuser` una vez, vía la consola/shell que
+   ofrezca la plataforma, para tener el primer usuario `admin`.
+
+`vercel.json` queda en el repo por si en algún momento se prueba Vercel
+para el backend igual (soporte oficial de Django, ver comentarios en
+`settings.py`), pero no es el camino recomendado.
+
 ## Qué falta (próximos pasos, no implementado todavía)
 
 - **Poller de ThingSpeak → `Posicion`**: un job periódico (management

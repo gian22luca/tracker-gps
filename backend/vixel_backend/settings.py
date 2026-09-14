@@ -31,6 +31,15 @@ DEBUG = os.environ.get("DJANGO_DEBUG", "true").lower() == "true"
 
 ALLOWED_HOSTS = [h for h in os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",") if h]
 
+# Vercel: cada deploy (prod y previews) tiene su propio dominio *.vercel.app,
+# que Vercel expone en runtime via VERCEL_URL — no se puede listar de antemano
+# en DJANGO_ALLOWED_HOSTS, asi que lo agregamos si la variable esta presente.
+VERCEL_URL = os.environ.get("VERCEL_URL")
+if VERCEL_URL:
+    ALLOWED_HOSTS.append(VERCEL_URL)
+if os.environ.get("VERCEL"):
+    ALLOWED_HOSTS.append(".vercel.app")
+
 
 # Application definition
 
@@ -51,6 +60,7 @@ AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -105,13 +115,26 @@ WSGI_APPLICATION = "vixel_backend.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+#
+# En Vercel (y cualquier hosting serverless) SQLite no sirve: el filesystem
+# es de solo lectura / efimero entre invocaciones. Si existe DATABASE_URL
+# (Neon, Railway, Render, etc.) se usa esa Postgres; si no, sqlite local
+# para desarrollo.
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if DATABASE_URL:
+    import dj_database_url
+
+    DATABASES = {
+        "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600, ssl_require=True)
     }
-}
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": BASE_DIR / "db.sqlite3",
+        }
+    }
 
 
 # Password validation
@@ -147,8 +170,18 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
+#
+# whitenoise sirve los estaticos (CSS del admin, DRF browsable API) desde
+# el propio proceso Django — no hace falta un build step separado ni
+# configurar rutas de estatico en vercel.json.
 
 STATIC_URL = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
