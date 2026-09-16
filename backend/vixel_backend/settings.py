@@ -40,6 +40,20 @@ if VERCEL_URL:
 if os.environ.get("VERCEL"):
     ALLOWED_HOSTS.append(".vercel.app")
 
+# Railway, Render y similares terminan el HTTPS en su proxy y le reenvian el
+# pedido a la app como HTTP interno — sin esto Django no se entera de que el
+# pedido original era seguro, y el chequeo de origen de CSRF lo rechaza con
+# "CSRF verification failed" al hacer login en /admin/.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# CSRF_TRUSTED_ORIGINS necesita el esquema (https://) a diferencia de
+# ALLOWED_HOSTS, que solo lleva el host. Se arma a partir de la misma lista
+# para no tener que mantener dos variables de entorno separadas.
+CSRF_TRUSTED_ORIGINS = [
+    f"https://*{h}" if h.startswith(".") else f"https://{h}"
+    for h in ALLOWED_HOSTS
+]
+
 
 # Application definition
 
