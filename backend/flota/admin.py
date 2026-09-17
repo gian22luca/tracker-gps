@@ -4,6 +4,7 @@ from .models import (
     ConfiguracionDispositivo,
     Desvio,
     Dispositivo,
+    Linea,
     Parada,
     Posicion,
     Viaje,
@@ -49,6 +50,12 @@ class DispositivoAdmin(admin.ModelAdmin):
             dispositivo.device_key = generar_device_key()
             dispositivo.save(update_fields=["device_key"])
         self.message_user(request, f"Device key regenerada para {queryset.count()} dispositivo(s).")
+
+
+@admin.register(Linea)
+class LineaAdmin(admin.ModelAdmin):
+    list_display = ("nombre", "activa", "creado")
+    list_filter = ("activa",)
 
 
 @admin.register(Parada)

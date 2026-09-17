@@ -4,11 +4,12 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 
 from .authentication import DeviceKeyAuthentication
-from .models import ConfiguracionDispositivo, Dispositivo, Parada, Posicion, Viaje
+from .models import ConfiguracionDispositivo, Dispositivo, Linea, Parada, Posicion, Viaje
 from .permissions import EsAdminOSoloLectura, EsDispositivoAutenticado
 from .serializers import (
     ConfiguracionDispositivoSerializer,
     DispositivoSerializer,
+    LineaSerializer,
     ParadaSerializer,
     PosicionReporteSerializer,
     PosicionSerializer,
@@ -50,6 +51,12 @@ class DispositivoViewSet(viewsets.ModelViewSet):
 class ParadaViewSet(viewsets.ModelViewSet):
     queryset = Parada.objects.all()
     serializer_class = ParadaSerializer
+    permission_classes = [EsAdminOSoloLectura]
+
+
+class LineaViewSet(viewsets.ModelViewSet):
+    queryset = Linea.objects.all()
+    serializer_class = LineaSerializer
     permission_classes = [EsAdminOSoloLectura]
 
 

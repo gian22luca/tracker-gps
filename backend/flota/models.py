@@ -78,6 +78,36 @@ class Parada(models.Model):
         return f"{self.orden}. {self.nombre}"
 
 
+class Linea(models.Model):
+    """Recorrido de una linea/ramal: terminales y polyline de ida/vuelta.
+    Reemplaza terminal1/terminal2/rutaIda/rutaVuelta hardcodeados en
+    panel.js — se carga desde /gestion/ dibujando sobre un mapa Leaflet,
+    no grabando un viaje real (un viaje real confunde una parada con una
+    detencion por trafico o semaforo)."""
+
+    nombre = models.CharField(max_length=100)
+
+    terminal1_nombre = models.CharField(max_length=100, default="Terminal 1")
+    terminal1_lat = models.FloatField(null=True, blank=True)
+    terminal1_lon = models.FloatField(null=True, blank=True)
+
+    terminal2_nombre = models.CharField(max_length=100, default="Terminal 2")
+    terminal2_lat = models.FloatField(null=True, blank=True)
+    terminal2_lon = models.FloatField(null=True, blank=True)
+
+    ruta_ida = models.JSONField(default=list, blank=True, help_text="Lista de puntos [lat, lon] del recorrido de ida")
+    ruta_vuelta = models.JSONField(default=list, blank=True, help_text="Lista de puntos [lat, lon] del recorrido de vuelta")
+
+    activa = models.BooleanField(default=True)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["nombre"]
+
+    def __str__(self):
+        return self.nombre
+
+
 class Posicion(models.Model):
     """Un reporte de posicion GPS. Reemplaza al fetch directo a ThingSpeak
     desde el navegador en index.html — esto es lo que un poller server-side
