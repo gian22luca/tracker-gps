@@ -1,6 +1,14 @@
 from django.contrib import admin
 
-from .models import ConfiguracionDispositivo, Desvio, Dispositivo, Parada, Posicion, Viaje
+from .models import (
+    ConfiguracionDispositivo,
+    Desvio,
+    Dispositivo,
+    Parada,
+    Posicion,
+    Viaje,
+    generar_device_key,
+)
 
 
 class ConfiguracionInline(admin.StackedInline):
@@ -12,7 +20,16 @@ class ConfiguracionInline(admin.StackedInline):
 class DispositivoAdmin(admin.ModelAdmin):
     list_display = ("nombre", "activo", "thingspeak_channel_id", "creado")
     list_filter = ("activo",)
+    readonly_fields = ("device_key",)
+    actions = ["regenerar_device_key"]
     inlines = [ConfiguracionInline]
+
+    @admin.action(description="Regenerar device key (invalida la anterior)")
+    def regenerar_device_key(self, request, queryset):
+        for dispositivo in queryset:
+            dispositivo.device_key = generar_device_key()
+            dispositivo.save(update_fields=["device_key"])
+        self.message_user(request, f"Device key regenerada para {queryset.count()} dispositivo(s).")
 
 
 @admin.register(Parada)

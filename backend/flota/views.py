@@ -1,15 +1,17 @@
 from django.shortcuts import get_object_or_404
-from rest_framework import viewsets
+from rest_framework import generics, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from .authentication import DeviceKeyAuthentication
 from .models import ConfiguracionDispositivo, Dispositivo, Parada, Posicion, Viaje
-from .permissions import EsAdminOSoloLectura
+from .permissions import EsAdminOSoloLectura, EsDispositivoAutenticado
 from .serializers import (
     ConfiguracionDispositivoSerializer,
     DispositivoSerializer,
     ParadaSerializer,
+    PosicionReporteSerializer,
     PosicionSerializer,
     ViajeSerializer,
 )
@@ -66,6 +68,19 @@ class PosicionViewSet(viewsets.ModelViewSet):
         if dispositivo_id:
             qs = qs.filter(dispositivo_id=dispositivo_id)
         return qs[:500]
+
+
+class ReportarPosicionView(generics.CreateAPIView):
+    """POST /api/reportar/ — usado por el dispositivo fisico, no por
+    usuarios humanos. Autenticado con su device_key (no JWT); el
+    dispositivo queda fijado por la key, nunca por un campo del body."""
+
+    serializer_class = PosicionReporteSerializer
+    authentication_classes = [DeviceKeyAuthentication]
+    permission_classes = [EsDispositivoAutenticado]
+
+    def perform_create(self, serializer):
+        serializer.save(dispositivo=self.request.auth)
 
 
 class ViajeViewSet(viewsets.ModelViewSet):

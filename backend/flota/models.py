@@ -1,5 +1,11 @@
+import secrets
+
 from django.conf import settings
 from django.db import models
+
+
+def generar_device_key():
+    return secrets.token_urlsafe(32)
 
 
 class Dispositivo(models.Model):
@@ -14,6 +20,14 @@ class Dispositivo(models.Model):
     thingspeak_channel_id = models.CharField(max_length=20, blank=True)
     thingspeak_read_api_key = models.CharField(max_length=64, blank=True)
     thingspeak_write_api_key = models.CharField(max_length=64, blank=True)
+
+    # Credencial fija del dispositivo fisico (no de un usuario humano) para
+    # reportar su propia posicion via /api/reportar/. Ver flota/authentication.py.
+    device_key = models.CharField(
+        max_length=64, unique=True, default=generar_device_key, editable=False,
+        help_text="Credencial del dispositivo fisico. Se regenera desde una accion del admin.",
+    )
+
     activo = models.BooleanField(default=True)
     creado = models.DateTimeField(auto_now_add=True)
 

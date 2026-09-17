@@ -1,6 +1,15 @@
 from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 from accounts.models import User
+from .models import Dispositivo
+
+
+class EsDispositivoAutenticado(BasePermission):
+    """Exige que el request haya pasado por DeviceKeyAuthentication (no un
+    JWT de usuario). Pensado exclusivamente para /api/reportar/."""
+
+    def has_permission(self, request, view):
+        return isinstance(request.auth, Dispositivo)
 
 
 class EsAdminOSoloLectura(BasePermission):

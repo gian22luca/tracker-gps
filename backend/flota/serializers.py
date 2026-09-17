@@ -78,6 +78,25 @@ class PosicionSerializer(serializers.ModelSerializer):
         read_only_fields = ["creado"]
 
 
+class PosicionReporteSerializer(serializers.ModelSerializer):
+    """Para POST /api/reportar/ — sin campo 'dispositivo': ese sale de la
+    device_key autenticada (ver flota/views.py), nunca de lo que declare
+    el propio dispositivo en el body."""
+
+    class Meta:
+        model = Posicion
+        fields = [
+            "lat",
+            "lon",
+            "hdop",
+            "timestamp",
+            "bytes_enviados",
+            "bytes_recibidos",
+            "reportes_enviados",
+            "uptime_s",
+        ]
+
+
 class DesvioSerializer(serializers.ModelSerializer):
     class Meta:
         model = Desvio
