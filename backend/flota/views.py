@@ -1,7 +1,6 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, viewsets
 from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .authentication import DeviceKeyAuthentication
@@ -60,7 +59,7 @@ class PosicionViewSet(viewsets.ModelViewSet):
     A del plan de migracion. Filtra por ?dispositivo=<id>."""
 
     serializer_class = PosicionSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [EsAdminOSoloLectura]
 
     def get_queryset(self):
         qs = Posicion.objects.all()
@@ -88,7 +87,7 @@ class ViajeViewSet(viewsets.ModelViewSet):
     Filtra por ?dispositivo=<id>."""
 
     serializer_class = ViajeSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [EsAdminOSoloLectura]
 
     def get_queryset(self):
         qs = Viaje.objects.all()

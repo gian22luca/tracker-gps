@@ -58,7 +58,7 @@ CSRF_TRUSTED_ORIGINS = [
 # Application definition
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
+    "vixel_backend.apps.VixelAdminConfig",  # django.contrib.admin con VixelAdminSite (solo superuser)
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
