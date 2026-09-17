@@ -18,11 +18,30 @@ class ConfiguracionInline(admin.StackedInline):
 
 @admin.register(Dispositivo)
 class DispositivoAdmin(admin.ModelAdmin):
+    """La device_key es exclusiva del superusuario "root" (Vixel) — ni
+    siquiera un usuario con rol=admin de una empresa cliente la ve, aunque
+    llegue a tener acceso a /admin/ por otro motivo. Un cliente/despachante
+    solo ve el nombre del dispositivo, nunca su credencial."""
+
     list_display = ("nombre", "activo", "thingspeak_channel_id", "creado")
     list_filter = ("activo",)
-    readonly_fields = ("device_key",)
     actions = ["regenerar_device_key"]
     inlines = [ConfiguracionInline]
+
+    def get_fields(self, request, obj=None):
+        fields = list(super().get_fields(request, obj))
+        if not request.user.is_superuser and "device_key" in fields:
+            fields.remove("device_key")
+        return fields
+
+    def get_readonly_fields(self, request, obj=None):
+        return ("device_key",) if request.user.is_superuser else ()
+
+    def get_actions(self, request):
+        actions = super().get_actions(request)
+        if not request.user.is_superuser:
+            actions.pop("regenerar_device_key", None)
+        return actions
 
     @admin.action(description="Regenerar device key (invalida la anterior)")
     def regenerar_device_key(self, request, queryset):
