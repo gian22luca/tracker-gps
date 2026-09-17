@@ -60,11 +60,14 @@ class ParadaSerializer(serializers.ModelSerializer):
 
 
 class PosicionSerializer(serializers.ModelSerializer):
+    dispositivo_nombre = serializers.CharField(source="dispositivo.nombre", read_only=True)
+
     class Meta:
         model = Posicion
         fields = [
             "id",
             "dispositivo",
+            "dispositivo_nombre",
             "lat",
             "lon",
             "hdop",
