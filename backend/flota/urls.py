@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 
 from .views import (
     DispositivoViewSet,
+    LineaViewSet,
     ParadaViewSet,
     PosicionViewSet,
     ReportarPosicionView,
@@ -11,6 +12,7 @@ from .views import (
 
 router = DefaultRouter()
 router.register("dispositivos", DispositivoViewSet, basename="dispositivo")
+router.register("lineas", LineaViewSet, basename="linea")
 router.register("paradas", ParadaViewSet, basename="parada")
 router.register("posiciones", PosicionViewSet, basename="posicion")
 router.register("viajes", ViajeViewSet, basename="viaje")

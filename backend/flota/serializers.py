@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import ConfiguracionDispositivo, Desvio, Dispositivo, Parada, Posicion, Viaje
+from .models import ConfiguracionDispositivo, Desvio, Dispositivo, Linea, Parada, Posicion, Viaje
 
 
 class ConfiguracionDispositivoSerializer(serializers.ModelSerializer):
@@ -57,6 +57,26 @@ class ParadaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Parada
         fields = ["id", "nombre", "orden", "lat", "lon", "texto_pantalla", "audio_track"]
+
+
+class LineaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Linea
+        fields = [
+            "id",
+            "nombre",
+            "terminal1_nombre",
+            "terminal1_lat",
+            "terminal1_lon",
+            "terminal2_nombre",
+            "terminal2_lat",
+            "terminal2_lon",
+            "ruta_ida",
+            "ruta_vuelta",
+            "activa",
+            "creado",
+        ]
+        read_only_fields = ["creado"]
 
 
 class PosicionSerializer(serializers.ModelSerializer):
